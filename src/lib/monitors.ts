@@ -92,7 +92,7 @@ async function finishValidation(workspaceId: string, monitorId: string, attemptI
   return current;
 }
 
-async function monitorView(monitor: Monitor, workspace: { id: string; ownerId: string }): Promise<MonitorView> {
+async function monitorView(monitor: Monitor, workspace: { id: string; ownerId: string }, resolvedEntitlement?: Awaited<ReturnType<typeof resolveWorkspaceEntitlement>>): Promise<MonitorView> {
   const [activeRun, latestRun, baseline, lastManual] = await Promise.all([
     db.checkRun.findFirst({
       where: { monitorId: monitor.id, contractVersion: monitor.contractVersion, status: { in: ["QUEUED", "RUNNING"] } },
@@ -101,7 +101,7 @@ async function monitorView(monitor: Monitor, workspace: { id: string; ownerId: s
     }),
     db.checkRun.findFirst({
       where: { monitorId: monitor.id, contractVersion: monitor.contractVersion },
-      orderBy: { queuedAt: "desc" },
+      orderBy: [{ queuedAt: "desc" }, { id: "desc" }],
       include: { impactAnalysis: true },
     }),
     monitor.currentRevisionId
@@ -113,7 +113,7 @@ async function monitorView(monitor: Monitor, workspace: { id: string; ownerId: s
       select: { queuedAt: true },
     }),
   ]);
-  const entitlement = await resolveWorkspaceEntitlement({ workspaceId: workspace.id, actorUserId: workspace.ownerId });
+  const entitlement = resolvedEntitlement ?? await resolveWorkspaceEntitlement({ workspaceId: workspace.id, actorUserId: workspace.ownerId });
   const policyAllowsCheck = entitlement.effectiveState !== "unknown" && entitlement.capabilities.runCheck;
   const cooldownMs = entitlement.manualCheckCooldownSeconds * 1_000;
   const availableAt = lastManual ? new Date(lastManual.queuedAt.getTime() + cooldownMs) : null;
@@ -154,11 +154,12 @@ async function monitorView(monitor: Monitor, workspace: { id: string; ownerId: s
 
 export async function listMonitors(): Promise<MonitorView[]> {
   const workspace = await requireWorkspace();
+  const entitlement = await resolveWorkspaceEntitlement({ workspaceId: workspace.id, actorUserId: workspace.ownerId });
   const monitors = await db.monitor.findMany({
     where: { workspaceId: workspace.id },
     orderBy: { createdAt: "desc" },
   });
-  return Promise.all(monitors.map((monitor) => monitorView(monitor, workspace)));
+  return Promise.all(monitors.map((monitor) => monitorView(monitor, workspace, entitlement)));
 }
 
 export async function getMonitor(monitorId: string): Promise<MonitorView> {
