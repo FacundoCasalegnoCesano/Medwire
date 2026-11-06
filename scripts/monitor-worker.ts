@@ -1,7 +1,4 @@
-import { db } from "@/lib/db";
-import { dispatchDueMonitorChecks, processMonitorCheckRun } from "@/lib/monitor-checks";
-import { dispatchDueImpactAnalyses, processImpactAnalysis } from "@/lib/impact-analysis";
-import { startMonitorWorker, stopMonitorWorker } from "@/lib/monitor-queue";
+import { MissingMonitorDatabaseUrlError, safeWorkerDiagnostic } from "@/lib/monitor-worker-diagnostics";
 
 let resolveShutdown: (() => void) | undefined;
 const shutdownRequested = new Promise<void>((resolve) => {
@@ -12,24 +9,32 @@ process.once("SIGINT", () => resolveShutdown?.());
 process.once("SIGTERM", () => resolveShutdown?.());
 
 async function main() {
+  let database: typeof import("@/lib/db").db | undefined;
+  let stopWorker: typeof import("@/lib/monitor-queue").stopMonitorWorker | undefined;
   try {
-    await startMonitorWorker(processMonitorCheckRun, dispatchDueMonitorChecks, processImpactAnalysis, dispatchDueImpactAnalyses);
+    if (!process.env.DATABASE_URL) throw new MissingMonitorDatabaseUrlError();
+    const [{ db }, checks, analyses, queue] = await Promise.all([
+      import("@/lib/db"), import("@/lib/monitor-checks"), import("@/lib/impact-analysis"), import("@/lib/monitor-queue"),
+    ]);
+    database = db;
+    stopWorker = queue.stopMonitorWorker;
+    await queue.startMonitorWorker(checks.processMonitorCheckRun, checks.dispatchDueMonitorChecks, analyses.processImpactAnalysis, analyses.dispatchDueImpactAnalyses);
     console.log("Monitoring worker started.");
     await shutdownRequested;
-  } catch {
-    console.error("Monitoring worker could not start or continue. Check the local database and queue configuration.");
+  } catch (error) {
+    console.error(safeWorkerDiagnostic("worker-start", error));
     process.exitCode = 1;
   } finally {
     try {
-      await stopMonitorWorker();
-    } catch {
-      console.error("Monitoring queue did not stop cleanly.");
+      await stopWorker?.();
+    } catch (error) {
+      console.error(safeWorkerDiagnostic("worker-stop", error));
       process.exitCode = 1;
     }
     try {
-      await db.$disconnect();
-    } catch {
-      console.error("The monitoring worker database client did not close cleanly.");
+      await database?.$disconnect();
+    } catch (error) {
+      console.error(safeWorkerDiagnostic("database-close", error));
       process.exitCode = 1;
     }
   }
