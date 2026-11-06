@@ -7,3 +7,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## EGM workflow
+
+Use the installed EGM skills for meaningful feature and design work: `egm-brainstorm`, `egm-draft`, and `egm-review`. Use `egm-drift-report` to compare current-state documentation with the implementation. Install the complete EGM plugin with `codex plugin marketplace add google/elephant-goldfish-model` and `codex plugin add egm@egm`; start a new Codex chat after installation to select the skills.
+
+EGM artifact directory: tasks/egm
