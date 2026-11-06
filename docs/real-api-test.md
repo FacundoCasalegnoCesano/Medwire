@@ -1,0 +1,46 @@
+# Probar el API existente de historial de checks
+
+La prueba usa el endpoint existente y de solo lectura `GET /api/monitors/{id}/checks`, llamado desde [`src/components/monitor-check-panel.tsx`](../src/components/monitor-check-panel.tsx). El contrato enfocado [`docs/contracts/check-history.openapi.json`](contracts/check-history.openapi.json) describe autenticación por sesión, cursor opcional, respuesta de página y errores conocidos. No pretende describir el resto del API de Medwire.
+
+## Probar el endpoint local
+
+1. Iniciá Medwire con su configuración local existente. La base PostgreSQL local debe estar disponible como de costumbre; esta prueba no modifica su esquema ni requiere migraciones. Abrí dos terminales PowerShell con la misma configuración local:
+
+   ```powershell
+   npm run dev
+   ```
+
+   En la segunda, iniciá el worker que procesa los checks y análisis:
+
+   ```powershell
+   npm run worker:monitoring
+   ```
+
+2. Iniciá sesión en [http://127.0.0.1:3000/sign-in](http://127.0.0.1:3000/sign-in) y abrí [http://127.0.0.1:3000/app/monitors](http://127.0.0.1:3000/app/monitors).
+
+3. Abrí un monitor existente y copiá su ID de la URL del monitor. En la misma sesión del navegador, visitá `http://127.0.0.1:3000/api/monitors/<monitor-id>/checks`, reemplazando `<monitor-id>` por ese ID. La respuesta JSON debe incluir `runs`, `nextCursor` y `hasMore`. Sin sesión devuelve 401. Un cursor inválido devuelve 400; un monitor no disponible para tu espacio devuelve 404. La consulta no inicia un check.
+
+## Ejecutar la prueba reproducible del cambio
+
+El CLI no necesita que la app ni PostgreSQL estén en ejecución. Compara el contrato base del repositorio con una copia en memoria que elimina el `GET`, y corre oasdiff 1.35.0 más el analizador sobre el componente consumidor comprometido en Git:
+
+```powershell
+# Solo si falta el binario local .tools/oasdiff-1.35.0:
+npm run install:oasdiff
+npm run demo:verify:checks
+```
+
+Se espera un hallazgo de eliminación en oasdiff y evidencia `CANDIDATE` del analizador. El componente arma una URL relativa con el ID dinámico del monitor, así que el analizador no puede probar la ruta exacta y no debe elevarla a `CONFIRMED`. El reporte limita la cobertura a ese componente y marca el resultado `LOCAL_ONLY`. Esta simulación no cambia el endpoint ni activa el botón de Analyze impact en la interfaz.
+
+## Probar un monitor con el contrato publicado
+
+Después de que el contrato de esta rama esté en GitHub, creá un monitor usando estos valores:
+
+- **OpenAPI contract URL:** `https://raw.githubusercontent.com/FacundoCasalegnoCesano/Medwire/Desarrollo/docs/contracts/check-history.openapi.json`
+- **Git repository URL:** `https://github.com/FacundoCasalegnoCesano/Medwire`
+
+La URL raw todavía no sirve este archivo hasta que se haga push. La rama default `master` ya contiene el consumidor real; el resolver de impacto toma allí el SHA y la versión del componente. Ese SHA puede diferir del usado por el CLI local, que lee el componente desde el `HEAD` actual de `Desarrollo`.
+
+Cuando el monitor termine su primer check exitoso, habrá guardado el baseline. Volver a comprobar el mismo contenido debe producir `UNCHANGED`. Para probar un cambio real, reemplazá el contenido del mismo archivo en la rama `Desarrollo` con una revisión del contrato que retire el `GET`, y hacé push conservando exactamente la misma URL raw. El monitor entonces compara la revisión con el baseline anterior. Cambiar la URL del contrato crea otra fuente y reinicia la baseline. Esta actualización del archivo público es una acción posterior; `demo:verify:checks` solo simula la retirada localmente y no publica la revisión breaking.
+
+El botón **Analyze impact** solo aparece cuando un check alcanza `SUCCESS`, `CHANGES_FOUND` y al menos un finding `BREAKING`. Guardar baseline o recibir `UNCHANGED` no habilita el análisis. El límite local por defecto entre checks manuales es de 300 segundos; esperá el cooldown indicado por la interfaz antes de solicitar otro check. No hace falta ni corresponde saltear ese límite.

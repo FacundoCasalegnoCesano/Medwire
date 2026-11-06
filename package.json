@@ -20,7 +20,8 @@
     "db:studio": "prisma studio --browser none",
     "worker:monitoring": "node --env-file-if-exists=.env --conditions=react-server --import tsx scripts/monitor-worker.ts",
     "install:oasdiff": "node scripts/install-oasdiff.mjs",
-    "demo:verify": "node --conditions=react-server --import tsx scripts/verify-demo-api.ts"
+    "demo:verify": "node --conditions=react-server --import tsx scripts/verify-demo-api.ts",
+    "demo:verify:checks": "node --conditions=react-server --import tsx scripts/verify-check-history-impact.ts"
   },
   "dependencies": {
     "@better-auth/prisma-adapter": "1.7.14",
