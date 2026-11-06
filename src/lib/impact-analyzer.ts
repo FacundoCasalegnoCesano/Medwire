@@ -529,6 +529,12 @@ export function analyzeContractImpact(input: {
     coverage.reasons.push("Only direct global fetch and statically imported Axios calls are analyzed; custom wrappers, cross-file client configuration, and other HTTP clients are unsupported.");
   }
   let filesWithUnsupportedClients = 0;
+  let evidenceTruncated = false;
+  const budgetReasons: string[] = [];
+  const addEvidence = (item: ImpactEvidence) => {
+    if (evidenceList.length < MAX_EVIDENCE) evidenceList.push(item);
+    else evidenceTruncated = true;
+  };
   let analyzed = 0;
   let skipped = coverage.filesSkipped;
   const deadline = Date.now() + MAX_ANALYSIS_MS;
@@ -561,17 +567,20 @@ export function analyzeContractImpact(input: {
     if (hasUnsupportedHttpClient(source)) filesWithUnsupportedClients += 1;
     const uses = extractRequests(source);
     const evidenceStart = evidenceList.length;
+    const evidenceTruncatedStart: boolean = evidenceTruncated;
     let fileComplete = true;
     if (Date.now() >= deadline) {
       analyzed -= 1;
       skipped += filesToAnalyze.length - fileIndex;
       timedOut = true;
       fileComplete = false;
+      evidenceTruncated = evidenceTruncatedStart;
     }
     for (const use of uses) {
       if (!fileComplete) break;
       if (Date.now() >= deadline) {
         evidenceList.length = evidenceStart;
+        evidenceTruncated = evidenceTruncatedStart;
         analyzed -= 1;
         skipped += filesToAnalyze.length - fileIndex;
         timedOut = true;
@@ -579,7 +588,7 @@ export function analyzeContractImpact(input: {
         break;
       }
       if (operations.length === 0) {
-        if (hasSchemaFinding) evidenceList.push(evidence({
+        if (hasSchemaFinding) addEvidence(evidence({
           classification: "CANDIDATE", repositoryUrl: input.repositoryUrl, commitSha: input.commitSha,
           filePath: file.path, source, use, finding: null, requestPath: null,
           reason: "A breaking schema change exists, but no specific request property usage could be proven.",
@@ -587,13 +596,22 @@ export function analyzeContractImpact(input: {
         continue;
       }
       const url = resolveRequestUrl(use);
-      if (hasSchemaFinding) evidenceList.push(evidence({
+      if (hasSchemaFinding) addEvidence(evidence({
         classification: "CANDIDATE", repositoryUrl: input.repositoryUrl, commitSha: input.commitSha,
         filePath: file.path, source, use, finding: null, requestPath: null,
         reason: "A breaking schema change exists, but this request does not prove use of the changed property.",
       }));
 
       for (const finding of operations) {
+        if (Date.now() >= deadline) {
+          evidenceList.length = evidenceStart;
+          evidenceTruncated = evidenceTruncatedStart;
+          analyzed -= 1;
+          skipped += filesToAnalyze.length - fileIndex;
+          timedOut = true;
+          fileComplete = false;
+          break;
+        }
         if (use.method && use.method.toUpperCase() !== finding.method.toUpperCase()) continue;
         const endpointRemoved = OPERATION_REMOVAL_CODES.has(finding.code) && operationRemovalProven(input.nextContract, finding);
         const previousBases = operationBases(input.previousContract, finding, input.contractUrl);
@@ -618,7 +636,7 @@ export function analyzeContractImpact(input: {
             : use.dynamicUrl
               ? "The request URL is dynamic and cannot be linked reliably to the contract operation."
               : "The request method or API base is not sufficiently established for a confirmed impact.";
-        evidenceList.push(evidence({
+        addEvidence(evidence({
           classification: confirmed ? "CONFIRMED" : "CANDIDATE",
           repositoryUrl: input.repositoryUrl,
           commitSha: input.commitSha,
@@ -641,7 +659,7 @@ export function analyzeContractImpact(input: {
   }
   if (timedOut) {
     coverage.source = "PARTIAL";
-    coverage.reasons.push("Analysis time limit reached; remaining source files or requests were not fully analyzed.");
+    budgetReasons.push("Analysis time limit reached; remaining source files or requests were not fully analyzed.");
   }
   coverage.filesAnalyzed = analyzed;
   coverage.filesSkipped = skipped;
@@ -650,13 +668,12 @@ export function analyzeContractImpact(input: {
     coverage.source = "PARTIAL";
     coverage.reasons.push(`Detected unsupported HTTP client patterns, including named Axios method imports and namespace Axios imports (including .default access), in ${filesWithUnsupportedClients} analyzed file(s); those requests were not confirmed.`);
   }
-  if (coverage.reasons.length > 0 && coverage.source === "SUPPORTED") coverage.source = "PARTIAL";
-  coverage.reasons = [...new Set(coverage.reasons)].slice(0, 12);
-  const bounded = evidenceList.slice(0, MAX_EVIDENCE);
-  if (evidenceList.length > bounded.length) {
+  if (evidenceTruncated) {
     coverage.source = "PARTIAL";
-    coverage.reasons.push("Evidence result limit reached (80 findings).");
-    coverage.reasons = [...new Set(coverage.reasons)].slice(0, 12);
+    budgetReasons.push("Evidence result limit reached (80 findings); additional findings were omitted.");
   }
-  return { evidence: bounded, coverage };
+  if (coverage.reasons.length > 0 && coverage.source === "SUPPORTED") coverage.source = "PARTIAL";
+  const unsupportedReasons = coverage.reasons.filter((reason) => /unsupported/i.test(reason));
+  coverage.reasons = [...new Set([...budgetReasons, ...unsupportedReasons, ...coverage.reasons])].slice(0, 12);
+  return { evidence: evidenceList, coverage };
 }

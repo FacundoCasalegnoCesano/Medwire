@@ -207,7 +207,7 @@ model ImpactAnalysis {
   previousRevisionId   String                @db.Char(64)
   newRevisionId        String                @db.Char(64)
   commitSha            String?               @db.VarChar(64)
-  analyzerVersion      String                @default("impact-ts-v2") @db.VarChar(32)
+  analyzerVersion      String                @default("impact-ts-v3") @db.VarChar(32)
   status               ImpactAnalysisStatus  @default(QUEUED)
   evidence             Json                  @default("[]")
   coverage             Json?
