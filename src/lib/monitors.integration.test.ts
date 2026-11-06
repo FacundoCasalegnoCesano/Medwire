@@ -98,8 +98,21 @@ describe("monitor lifecycle integration", () => {
     expect(draftBody.monitor.status).toBe("DRAFT");
     expect(draftBody.monitor.contractError).toBe("OpenAPI document could not be read.");
 
+    const querySpies = [
+      vi.spyOn(db.monitor, "findMany"),
+      vi.spyOn(db.checkRun, "findFirst"),
+      vi.spyOn(db.contractSnapshot, "findUnique"),
+      vi.spyOn(db.workspace, "findUnique"),
+    ];
+    const listStartedAt = performance.now();
     const draftRefresh = await getMonitors();
-    const persistedDraft = (await draftRefresh.json() as { monitors: MonitorRecord[] }).monitors[0];
+    const listElapsedMs = performance.now() - listStartedAt;
+    const ormCalls = querySpies.reduce((sum, spy) => sum + spy.mock.calls.length, 0);
+    querySpies.forEach((spy) => spy.mockRestore());
+    const listedMonitors = (await draftRefresh.json() as { monitors: MonitorRecord[] }).monitors;
+    console.info(`[monitor-list-baseline] rows=${listedMonitors.length} orm_calls=${ormCalls} elapsed_ms=${listElapsedMs.toFixed(2)}`);
+    const persistedDraft = listedMonitors[0];
+    expect(listedMonitors).toHaveLength(1);
     expect(persistedDraft.id).toBe(monitorId);
     expect(persistedDraft.status).toBe("DRAFT");
     expect(persistedDraft.contractError).toBe("OpenAPI document could not be read.");

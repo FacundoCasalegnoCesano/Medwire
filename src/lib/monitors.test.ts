@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireWorkspace, monitor, validateMonitorSources, getMonitorSourceInputError, policyEntitlement, checkRun, contractSnapshot, dbMock } = vi.hoisted(() => {
+const { requireWorkspace, monitor, validateMonitorSources, getMonitorSourceInputError, policyEntitlement, resolveWorkspaceEntitlement, checkRun, contractSnapshot, dbMock } = vi.hoisted(() => {
   const requireWorkspace = vi.fn(async () => ({ id: "workspace-a", ownerId: "user-a", name: "Ada's workspace" }));
   const monitor = {
     create: vi.fn(),
@@ -25,8 +25,9 @@ const { requireWorkspace, monitor, validateMonitorSources, getMonitorSourceInput
     $transaction: vi.fn(async (callback: (transaction: typeof tx) => unknown) => callback(tx)),
   };
   const validateMonitorSources = vi.fn();
+  const resolveWorkspaceEntitlement = vi.fn(async () => policyEntitlement);
   const getMonitorSourceInputError = vi.fn((value: string) => value.includes("@github.com") && value.includes("user:") ? "Remove credentials from this URL." : null);
-  return { requireWorkspace, monitor, validateMonitorSources, getMonitorSourceInputError, policyEntitlement, checkRun, contractSnapshot, dbMock };
+  return { requireWorkspace, monitor, validateMonitorSources, getMonitorSourceInputError, policyEntitlement, resolveWorkspaceEntitlement, checkRun, contractSnapshot, dbMock };
 });
 
 vi.mock("server-only", () => ({}));
@@ -34,7 +35,7 @@ vi.mock("@/lib/workspace", () => ({ requireWorkspace }));
 vi.mock("@/lib/db", () => ({ db: dbMock }));
 vi.mock("@/lib/beta-policy", () => ({
   assertWorkspaceCapability: vi.fn(async () => policyEntitlement),
-  resolveWorkspaceEntitlement: vi.fn(async () => policyEntitlement),
+  resolveWorkspaceEntitlement,
 }));
 vi.mock("@/lib/monitor-sources", () => ({ validateMonitorSources, getMonitorSourceInputError }));
 
@@ -123,6 +124,24 @@ describe("monitor lifecycle", () => {
     expect(monitor.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ id: "monitor-other", workspaceId: "workspace-a" }),
     }));
+  });
+
+  it("resolves entitlement once for a workspace-scoped list and preserves each view", async () => {
+    const monitors = ["monitor-a", "monitor-b"].map((id) => ({
+      id, workspaceId: "workspace-a", name: id, contractUrl: input.contractUrl, repositoryUrl: input.repositoryUrl,
+      contractVersion: 1, currentRevisionId: null, nextCheckAt: null, lastSuccessfulCheckAt: null, status: "WITHDRAWN",
+      contractError: null, repositoryError: null, createdAt: new Date("2026-11-02T00:00:00Z"), updatedAt: new Date("2026-11-02T00:00:00Z"),
+    }));
+    monitor.findMany.mockResolvedValueOnce(monitors);
+
+    const result = await listMonitors();
+
+    expect(resolveWorkspaceEntitlement).toHaveBeenCalledTimes(1);
+    expect(resolveWorkspaceEntitlement).toHaveBeenCalledWith({ workspaceId: "workspace-a", actorUserId: "user-a" });
+    expect(monitor.findMany).toHaveBeenCalledWith({ where: { workspaceId: "workspace-a" }, orderBy: { createdAt: "desc" } });
+    expect(result.map(({ id, pauseReason, manualCheck }) => [id, pauseReason, manualCheck.allowed])).toEqual([
+      ["monitor-a", "WITHDRAWN", false], ["monitor-b", "WITHDRAWN", false],
+    ]);
   });
 
   it("does not let a slow validation replace a later withdrawal", async () => {
