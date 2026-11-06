@@ -12,6 +12,8 @@ Every task must preserve account/workspace isolation, the public landing identit
 
 **2026-11-06 existing API proof:** A focused local contract and simulated removal proof now cover the existing read-only check-history GET and its real UI caller. The analyzer correctly reports a dynamic-path candidate with partial, one-file coverage; the endpoint remains unchanged. The CLI, exact local steps, and pending raw-contract publication requirements are recorded in [the proof note](egm/2026-11-06_REAL_API_PROOF.md) and [the user guide](../docs/real-api-test.md). This does not change the historical verification counts above.
 
+**2026-11-06 consumer-selection follow-up:** Commit `6c0502d6ad9b581138ba2a66bb988d41cd03bab9` adds deterministic path-based source priorities, syntax-safe origin handling, and analyzer v4 provenance while preserving the 30-file/time/byte limits and partial-coverage reporting. Final checks passed: 153/153 unit tests, 27/27 disposable-database integration tests, lint, typecheck, two immutable-revision harness cases, and the committed-source offline CLI proof. The independent code review reported no findings; the formal multi-stage EGM review was not run. The v4 default migration was applied and checked only on `mendwire_roadmap32_test`; that disposable server was stopped. No fresh browser or production build check was run. The decision, trade-offs and coverage limits are in [the consumer-selection record](egm/2026-11-06_CONSUMER_SELECTION.md).
+
 ## 3. Show breaking API changes, affected code, and a proposed pull request
 
 An engineer can compare real contract revisions, inspect evidence from a specific code revision, review a proposed repair and open a draft pull request in an authorized GitHub repository. The product distinguishes a detected contract change, demonstrated code impact and an unverified repair proposal.
@@ -36,7 +38,7 @@ An engineer can compare real contract revisions, inspect evidence from a specifi
 
 ### 3.2 — Trace a breaking change to evidence in the affected codebase
 
-**Implementation status:** The UI, API, and worker flow predated this refresh. Analyzer v2 correctness and coverage fixes are in place, and fresh unit, disposable-database integration, lint, typecheck, and build checks passed on 2026-11-06. Earlier browser and public-worker QA remain historical results in [`impact-analysis-verification.md`](impact-analysis-verification.md).
+**Implementation status:** The UI, API, and worker flow predated this refresh. Analyzer v4 adds bounded deterministic path priorities and safer dynamic-origin evidence while retaining its existing API, authorization, and immutable-revision contracts. Earlier browser and public-worker QA remain historical results in [`impact-analysis-verification.md`](impact-analysis-verification.md); the latest verification is recorded above and in the [consumer-selection record](egm/2026-11-06_CONSUMER_SELECTION.md).
 
 - [x] Implement this task.
 
