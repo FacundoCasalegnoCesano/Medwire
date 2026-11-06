@@ -73,6 +73,69 @@ describe("contract consumer analysis", () => {
     expect(result.evidence[0]).toMatchObject({ classification: "CANDIDATE", requestPath: null });
   });
 
+  it("suppresses the pinned oasdiff release download from contract impact", () => {
+    const result = analyze('const version = "1.35.0";\nconst archiveName = "oasdiff.tar.gz";\nfetch(`https://github.com/oasdiff/oasdiff/releases/download/v${version}/${archiveName}`);');
+    expect(result.evidence).toEqual([]);
+  });
+
+  it("keeps dynamic origins when any applicable contract server is templated", () => {
+    const result = analyze('fetch(`https://github.com/releases/${version}`);', {
+      previousContract: {
+        openapi: "3.1.0",
+        servers: [{ url: "https://api.example.test/v1" }, { url: "https://{region}.example.test/v1" }],
+        paths: { "/users": { get: {} } },
+      },
+    });
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.classification).toBe("CANDIDATE");
+  });
+
+  it("keeps same-origin dynamic paths as candidates", () => {
+    const result = analyze('fetch(`https://api.example.test/v1/${resource}`);');
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]).toMatchObject({ classification: "CANDIDATE", requestPath: null });
+  });
+
+  it("keeps a relative dynamic API path as a candidate", () => {
+    const result = analyze('fetch(`/api/monitors/${monitor.id}/checks`);', {
+      findings: [{ ...removedOperation, path: "/api/monitors/{id}/checks", location: "GET /api/monitors/{id}/checks" }],
+    });
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]).toMatchObject({ classification: "CANDIDATE", requestPath: null });
+  });
+
+  it("does not discard a dynamic authority", () => {
+    const result = analyze('fetch(`https://${host}/v1/users`);');
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.classification).toBe("CANDIDATE");
+  });
+
+  it("uses a literal external Axios origin only when client configuration is known", () => {
+    const result = analyze([
+      'import axios from "axios";',
+      'axios.get(`https://github.com/releases/${version}`);',
+    ].join("\n"));
+    expect(result.evidence).toEqual([]);
+  });
+
+  it("does not trust a shadowed URL constant when inferring its origin", () => {
+    const result = analyze([
+      'const downloadUrl = `https://github.com/releases/${version}`;',
+      'function run(downloadUrl: string) { fetch(downloadUrl); }',
+    ].join("\n"));
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.classification).toBe("CANDIDATE");
+  });
+
+  it.each([
+    ["mutable alias", 'let downloadUrl = `https://github.com/releases/${version}`; fetch(downloadUrl);'],
+    ["cyclic aliases", 'const first = second; const second = first; fetch(first);'],
+  ])("keeps %s URLs as candidates", (_label, source) => {
+    const result = analyze(source);
+    expect(result.evidence).toHaveLength(1);
+    expect(result.evidence[0]?.classification).toBe("CANDIDATE");
+  });
+
   it("does not resolve a top-level constant when a function parameter shadows it", () => {
     const result = analyze([
       'const endpoint = "https://api.example.test/v1/users";',

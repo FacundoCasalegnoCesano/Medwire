@@ -14,6 +14,9 @@ const SOURCE_EXTENSIONS = /\.(?:[cm]?js|[cm]?jsx|tsx?)$/i;
 const OTHER_SOURCE_EXTENSIONS = /\.(?:py|go|rs|java|kt|rb|php|cs|vue|svelte|html|swift|scala|dart|c|h|cc|cpp|cxx|hpp|hxx|m|mm|sh|bash|zsh|sql|pl|pm|ex|exs|clj|cljs|edn|erl|hrl|fs|fsx|hs|lua|r)$/i;
 const KNOWN_NON_SOURCE_EXTENSIONS = /\.(?:md|mdx|txt|rst|adoc|png|jpe?g|gif|webp|svg|ico|pdf|woff2?|ttf|otf|eot|mp[34]|wav|zip|gz|lock|json|ya?ml|toml|ini|xml|csv|env|gitignore|editorconfig|map)$/i;
 const SKIPPED_DIRECTORY = /(?:^|\/)(?:\.git|node_modules|vendor|dist|build|coverage|\.next|\.turbo|generated|\.output)(?:\/|$)/i;
+const APPLICATION_DIRECTORIES = new Set(["src", "app", "pages", "components", "lib", "features", "routes", "services", "hooks", "stores", "widgets", "api", "frontend", "backend", "client", "server", "modules", "module", "domain", "ui", "views", "controllers", "models", "middleware"]);
+const LOW_PRIORITY_DIRECTORIES = new Set(["scripts", "script", "tools", "tooling", "test", "tests", "__tests__", "fixtures", "__fixtures__", "mocks", "__mocks__", "__generated__", "examples", "storybook"]);
+const LOW_PRIORITY_FILE = /(?:\.test|\.spec|\.stories|\.config|\.generated|\.d)\.(?:[cm]?[jt]sx?)$/i;
 
 export type ImpactSourceErrorCode =
   | "UNSUPPORTED_SOURCE"
@@ -102,6 +105,25 @@ function addReason(reasons: string[], reason: string) {
 
 type BlobCandidate = { path: string; sha: string; size: number };
 
+function comparePath(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function candidatePriority(path: string): number {
+  const parts = path.split("/");
+  const basename = parts.at(-1) ?? "";
+  if (parts.some((part) => LOW_PRIORITY_DIRECTORIES.has(part.toLowerCase())) || LOW_PRIORITY_FILE.test(basename)) return 2;
+  if (parts.slice(0, -1).some((part) => APPLICATION_DIRECTORIES.has(part.toLowerCase()))) return 0;
+  if (parts.length === 1) return 2;
+  return 1;
+}
+
+function compareCandidates(a: BlobCandidate, b: BlobCandidate): number {
+  return candidatePriority(a.path) - candidatePriority(b.path) ||
+    a.path.split("/").length - b.path.split("/").length ||
+    comparePath(a.path, b.path);
+}
+
 function parseBlob(value: unknown, candidate: BlobCandidate): string | null {
   if (!value || typeof value !== "object") return null;
   const blob = value as { encoding?: unknown; content?: unknown; size?: unknown; sha?: unknown };
@@ -187,7 +209,7 @@ export async function readRepositoryFiles(input: {
     }
     candidates.push({ path: entry.path, sha: entry.sha, size });
   }
-  candidates.sort((a, b) => a.path.localeCompare(b.path));
+  candidates.sort(compareCandidates);
   const selected: BlobCandidate[] = [];
   let selectedBytes = 0;
   for (const candidate of candidates) {
@@ -199,6 +221,7 @@ export async function readRepositoryFiles(input: {
     coverage.filesSkipped += candidates.length - selected.length;
     coverage.source = "PARTIAL";
     addReason(coverage.reasons, "Repository file or total source byte limit reached (30 files and 1.4 MiB per analysis).");
+    addReason(coverage.reasons, "Eligible source files were prioritized within the bounded analysis selection.");
   }
   if (coverage.filesSkipped > 0) coverage.source = "PARTIAL";
 
@@ -224,7 +247,7 @@ export async function readRepositoryFiles(input: {
     }
   };
   await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT_BLOBS, selected.length) }, () => worker()));
-  files.sort((a, b) => a.path.localeCompare(b.path));
+  files.sort((a, b) => comparePath(a.path, b.path));
   coverage.filesAnalyzed = files.length;
   if (coverage.filesDiscovered === 0) {
     coverage.source = "PARTIAL";

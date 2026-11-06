@@ -14,7 +14,7 @@ import { enqueueImpactAnalysisInTransaction, getMonitorCheckBoss, MONITOR_IMPACT
 const CLAIM_LEASE_MS = 2 * 60_000;
 const MAX_ATTEMPTS = 4;
 const MAX_EVIDENCE = 200;
-export const IMPACT_ANALYZER_VERSION = "impact-ts-v3";
+export const IMPACT_ANALYZER_VERSION = "impact-ts-v4";
 const FAILURE_MESSAGE = "The impact analysis could not be completed. Retry it to continue on the pinned commit.";
 const POLICY_MESSAGE = "The workspace no longer allows impact analysis. The check result and saved monitor were kept.";
 const WITHDRAWN_MESSAGE = "This monitor is withdrawn and the impact analysis was not published.";

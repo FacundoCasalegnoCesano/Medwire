@@ -249,7 +249,7 @@ describe("impact analysis API and worker with PostgreSQL fixture", () => {
     await processImpactAnalysis(analysisId);
     expect(sourceState.resolve).toHaveBeenCalledOnce();
     expect(sourceState.read).toHaveBeenLastCalledWith({ repositoryUrl, commitSha: commitA });
-    expect(await db.impactAnalysis.findUniqueOrThrow({ where: { id: analysisId } })).toMatchObject({ analyzerVersion: "impact-ts-v3" });
+    expect(await db.impactAnalysis.findUniqueOrThrow({ where: { id: analysisId } })).toMatchObject({ analyzerVersion: "impact-ts-v4" });
     expect(await db.impactAnalysis.count({ where: { workspaceId: failed.workspaceId } })).toBe(1);
   });
 

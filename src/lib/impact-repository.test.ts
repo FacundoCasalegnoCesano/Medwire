@@ -72,6 +72,70 @@ describe("impact repository source", () => {
     expect(result.coverage.reasons.join(" ")).toMatch(/truncated|limit/i);
   });
 
+  it("selects application source before lower-priority files and accounts for every omitted candidate", async () => {
+    const entries = [
+      { path: "src/components/monitor-check-panel.tsx", type: "blob", mode: "100644", sha: gitBlobSha("x"), size: 1 },
+      ...Array.from({ length: 35 }, (_, index) => ({
+        path: `scripts/tool-${String(index).padStart(2, "0")}.ts`, type: "blob", mode: "100644", sha: gitBlobSha("x"), size: 1,
+      })),
+    ];
+    mockedFetch
+      .mockResolvedValueOnce(response({ sha: commitSha, tree: { sha: treeSha } }))
+      .mockResolvedValueOnce(response({ sha: treeSha, truncated: false, tree: entries }));
+    entries.slice(0, 30).forEach(() => {
+      mockedFetch.mockResolvedValueOnce(response({ sha: gitBlobSha("x"), size: 1, encoding: "base64", content: Buffer.from("x").toString("base64") }));
+    });
+
+    const result = await readRepositoryFiles({ repositoryUrl: "https://github.com/acme/widgets", commitSha });
+
+    expect(result.files).toHaveLength(30);
+    expect(result.files.map((file) => file.path)).toContain("src/components/monitor-check-panel.tsx");
+    expect(result.files.map((file) => file.path)).not.toContain("scripts/tool-34.ts");
+    expect(result.coverage).toMatchObject({ source: "PARTIAL", filesDiscovered: 36, filesAnalyzed: 30, filesSkipped: 6 });
+    expect(result.coverage.reasons.join(" ")).toMatch(/prioritized/i);
+  });
+
+  it("uses path depth before lexical order when bounded selection cuts through application source", async () => {
+    const entries = [
+      ...Array.from({ length: 30 }, (_, index) => ({
+        path: `src/components/nested/deep-${String(index).padStart(2, "0")}.tsx`, type: "blob", mode: "100644", sha: gitBlobSha("x"), size: 1,
+      })),
+      { path: "src/services/Zeta.tsx", type: "blob", mode: "100644", sha: gitBlobSha("x"), size: 1 },
+    ];
+    mockedFetch
+      .mockResolvedValueOnce(response({ sha: commitSha, tree: { sha: treeSha } }))
+      .mockResolvedValueOnce(response({ sha: treeSha, truncated: false, tree: entries }));
+    entries.slice(0, 30).forEach(() => {
+      mockedFetch.mockResolvedValueOnce(response({ sha: gitBlobSha("x"), size: 1, encoding: "base64", content: Buffer.from("x").toString("base64") }));
+    });
+
+    const result = await readRepositoryFiles({ repositoryUrl: "https://github.com/acme/widgets", commitSha });
+
+    expect(result.files).toHaveLength(30);
+    expect(result.files.map((file) => file.path)).toContain("src/services/Zeta.tsx");
+    expect(result.files.map((file) => file.path)).not.toContain("src/components/nested/deep-29.tsx");
+    expect(result.coverage).toMatchObject({ source: "PARTIAL", filesDiscovered: 31, filesAnalyzed: 30, filesSkipped: 1 });
+  });
+
+  it("uses codepoint path order as a deterministic tie-breaker at the file cap", async () => {
+    const entries = Array.from({ length: 31 }, (_, index) => ({
+      path: `src/components/Component-${String(index).padStart(2, "0")}.tsx`, type: "blob", mode: "100644", sha: gitBlobSha("x"), size: 1,
+    })).reverse();
+    mockedFetch
+      .mockResolvedValueOnce(response({ sha: commitSha, tree: { sha: treeSha } }))
+      .mockResolvedValueOnce(response({ sha: treeSha, truncated: false, tree: entries }));
+    entries.slice(0, 30).forEach(() => {
+      mockedFetch.mockResolvedValueOnce(response({ sha: gitBlobSha("x"), size: 1, encoding: "base64", content: Buffer.from("x").toString("base64") }));
+    });
+
+    const result = await readRepositoryFiles({ repositoryUrl: "https://github.com/acme/widgets", commitSha });
+
+    expect(result.files).toHaveLength(30);
+    expect(result.files.map((file) => file.path)).toContain("src/components/Component-00.tsx");
+    expect(result.files.map((file) => file.path)).not.toContain("src/components/Component-30.tsx");
+    expect(result.coverage).toMatchObject({ source: "PARTIAL", filesDiscovered: 31, filesAnalyzed: 30, filesSkipped: 1 });
+  });
+
   it("rejects blob content whose SHA or byte size differs from the pinned tree", async () => {
     mockedFetch
       .mockResolvedValueOnce(response({ sha: commitSha, tree: { sha: treeSha } }))

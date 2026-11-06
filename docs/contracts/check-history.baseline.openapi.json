@@ -1,0 +1,33 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mendwire check history API (focused contract)",
+    "version": "1.0.0",
+    "description": "Documents only the existing read-only check history operation. It is not a complete Mendwire API specification."
+  },
+  "servers": [{ "url": "http://127.0.0.1:3000" }],
+  "paths": {
+    "/api/monitors/{id}/checks": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "get": {
+        "operationId": "listMonitorCheckHistory",
+        "summary": "List check history for an owned monitor",
+        "description": "Requires a signed-in session and access to the monitor's workspace. Returns at most 50 runs, newest first. The optional opaque cursor is limited to 512 URL-safe characters and is valid only for the same monitor.",
+        "parameters": [{ "name": "cursor", "in": "query", "required": false, "schema": { "type": "string", "maxLength": 512, "pattern": "^[A-Za-z0-9_-]+$" } }],
+        "responses": {
+          "200": { "description": "A page of check history.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckHistoryPage" } } } },
+          "400": { "description": "The cursor is invalid." },
+          "401": { "description": "A signed-in session is required." },
+          "404": { "description": "The monitor does not exist or is not available to this workspace." }
+        }
+      }
+    }
+  },
+  "components": { "schemas": { "CheckHistoryPage": {
+    "type": "object", "required": ["runs", "nextCursor", "hasMore"],
+    "properties": {
+      "runs": { "type": "array", "items": { "type": "object", "description": "A CheckRunSummary returned by the existing API." } },
+      "nextCursor": { "type": ["string", "null"] }, "hasMore": { "type": "boolean" }
+    }
+  } } }
+}

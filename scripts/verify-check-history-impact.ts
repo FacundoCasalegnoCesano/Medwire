@@ -21,7 +21,7 @@ async function main() {
   const sourcePath = "src/components/monitor-check-panel.tsx";
   const committedSource = readCommittedFile(sourcePath);
 
-  const contractPath = "docs/contracts/check-history.openapi.json";
+  const contractPath = "docs/contracts/check-history.baseline.openapi.json";
   const previousContract = JSON.parse(readCommittedFile(contractPath)) as Record<string, unknown>;
   const previousPaths = previousContract.paths as Record<string, Record<string, unknown>>;
   const nextContract = structuredClone(previousContract);

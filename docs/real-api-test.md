@@ -22,7 +22,7 @@ La prueba usa el endpoint existente y de solo lectura `GET /api/monitors/{id}/ch
 
 ## Ejecutar la prueba reproducible del cambio
 
-El CLI no necesita que la app ni PostgreSQL estén en ejecución. Compara el contrato base del repositorio con una copia en memoria que elimina el `GET`, y corre oasdiff 1.35.0 más el analizador sobre el componente consumidor guardado en un commit de Git:
+El CLI no necesita que la app ni PostgreSQL estén en ejecución. Compara el fixture inmutable [`check-history.baseline.openapi.json`](contracts/check-history.baseline.openapi.json), que conserva el contrato base anterior a la retirada del `GET`, con una copia en memoria que elimina esa operación. Luego corre oasdiff 1.35.0 y el analizador sobre el componente consumidor guardado en un commit de Git. El fixture no sigue los cambios del contrato publicado:
 
 ```powershell
 # Solo si falta el binario local .tools/oasdiff-1.35.0:
@@ -39,8 +39,10 @@ El contrato de la rama `Desarrollo` ya está publicado. El raw URL y el reposito
 - **OpenAPI contract URL:** `https://raw.githubusercontent.com/FacundoCasalegnoCesano/Medwire/Desarrollo/docs/contracts/check-history.openapi.json`
 - **Git repository URL:** `https://github.com/FacundoCasalegnoCesano/Medwire`
 
-La URL raw está publicada y fue verificada como legible. Todavía no se ejecutó un check real de monitor con estos valores. La rama default `master` ya contiene el consumidor real; el resolver de impacto toma allí el SHA y la versión del componente. Ese SHA puede diferir del usado por el CLI local, que lee el componente desde el `HEAD` actual de `Desarrollo`.
+La URL raw está publicada y fue verificada como legible. En el análisis breaking exitoso del usuario, fijado al commit `cafb211b040fbabe87a06cf9d62863c6ff67ce0c`, se analizaron 30 de 101 archivos y apareció un candidato de descarga ajeno al endpoint. Este resultado motivó los cambios de selección y confianza documentados en `tasks/egm/2026-11-06_CONSUMER_SELECTION.md`; no prueba cobertura completa ni constituye una verificación independiente de esta revisión. La rama default `master` ya contiene el consumidor real; el resolver de impacto toma allí el SHA y la versión del componente. Ese SHA puede diferir del usado por el CLI local, que lee el componente desde el `HEAD` actual de `Desarrollo`.
 
-Cuando el monitor termine su primer check exitoso, habrá guardado el baseline. Volver a comprobar el mismo contenido debe producir `UNCHANGED`. Para probar un cambio real, reemplazá el contenido del mismo archivo en la rama `Desarrollo` con una revisión del contrato que retire el `GET`, y hacé push conservando exactamente la misma URL raw. El monitor entonces compara la revisión con el baseline anterior. Cambiar la URL del contrato crea otra fuente y reinicia la baseline. `demo:verify:checks` solo simula la retirada localmente; no publica la revisión breaking ni ejecuta este monitor.
+El contrato publicado actualmente ya retira el `GET`. Para que un monitor nuevo observe una transición breaking, primero restaurá el contrato base con el `GET` en ese mismo archivo de `Desarrollo` y hacé push. Ejecutá un check exitoso para guardar el baseline; luego volvé a retirar el `GET`, hacé push y ejecutá otro check después del cooldown. Conservá exactamente la misma URL raw en ambas revisiones. La primera revisión guarda el baseline; la segunda debe producir `CHANGES_FOUND` y un finding `BREAKING`. Cambiar la URL del contrato crea otra fuente y reinicia el baseline. `demo:verify:checks` simula esta retirada localmente; no publica la revisión breaking ni ejecuta el monitor.
+
+Un análisis exitoso ya guardado conserva su resultado cuando se repite la misma solicitud. Para probar el analizador v4, generá un nuevo check breaking después de publicar esas dos revisiones; no se vuelve a analizar un check exitoso anterior. Reiniciá el proceso web y el worker para cargar el código nuevo.
 
 El botón **Analyze impact** solo aparece cuando un check alcanza `SUCCESS`, `CHANGES_FOUND` y al menos un finding `BREAKING`. Guardar baseline o recibir `UNCHANGED` no habilita el análisis. El límite local por defecto entre checks manuales es de 300 segundos; esperá el cooldown indicado por la interfaz antes de solicitar otro check. No hace falta ni corresponde saltear ese límite.

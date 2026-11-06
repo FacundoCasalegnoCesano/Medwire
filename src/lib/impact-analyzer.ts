@@ -21,6 +21,8 @@ type RequestUse = {
   method: string | null;
   rawUrl: string | null;
   dynamicUrl: boolean;
+  fixedOrigin: string | null;
+  allowExternalOriginSuppression: boolean;
   baseUrl: string | null;
   allowConfirmed: boolean;
 };
@@ -71,6 +73,40 @@ function staticString(
     return left === null || right === null ? null : `${left}${right}`;
   }
   return null;
+}
+
+function fixedLiteralOrigin(node: ts.Expression | undefined): string | null {
+  if (!node) return null;
+  let prefix: string | null = null;
+  if (ts.isTemplateExpression(node)) prefix = node.head.text;
+  else if (isString(node)) prefix = node.text;
+  if (!prefix) return null;
+  const match = /^(https?:\/\/[^/?#]+)\//i.exec(prefix);
+  if (!match) return null;
+  try { return new URL(match[1]).origin; }
+  catch { return null; }
+}
+
+function fixedOrigin(node: ts.Expression | undefined, source: ts.SourceFile, call: ts.CallExpression): string | null {
+  const resolve = (expression: ts.Expression | undefined, seen: Set<string>, depth: number): string | null => {
+    if (!expression || depth > 8) return null;
+    if (ts.isParenthesizedExpression(expression)) return resolve(expression.expression, seen, depth + 1);
+    if (ts.isIdentifier(expression)) {
+      if (seen.has(expression.text) || hasLocalShadow(source, call, expression.text, true)) return null;
+      const declaration = source.statements.flatMap((statement) => {
+        if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) return [];
+        return statement.declarationList.declarations.filter((item) => ts.isIdentifier(item.name) && item.name.text === expression.text);
+      })[0];
+      if (!declaration?.initializer) return null;
+      const nextSeen = new Set(seen).add(expression.text);
+      return resolve(declaration.initializer, nextSeen, depth + 1);
+    }
+    if (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+      return fixedLiteralOrigin(expression.left) ?? resolve(expression.left, seen, depth + 1);
+    }
+    return fixedLiteralOrigin(expression);
+  };
+  return resolve(node, new Set(), 0);
 }
 
 function namedBindings(source: ts.SourceFile): {
@@ -299,7 +335,9 @@ function extractRequests(source: ts.SourceFile): RequestUse[] {
       if (importedFetchCall(node, source)) {
         const raw = staticString(node.arguments[0], constants, source, node);
         const method = fetchMethod(node.arguments[1], constants, source, node);
-        requests.push({ node, client: "fetch", method, rawUrl: raw, dynamicUrl: raw === null, baseUrl: null, allowConfirmed: true });
+        requests.push({ node, client: "fetch", method, rawUrl: raw, dynamicUrl: raw === null,
+          fixedOrigin: raw === null ? fixedOrigin(node.arguments[0], source, node) : null,
+          allowExternalOriginSuppression: true, baseUrl: null, allowConfirmed: true });
       } else {
         const expression = node.expression;
         if (ts.isPropertyAccessExpression(expression)) {
@@ -326,7 +364,12 @@ function extractRequests(source: ts.SourceFile): RequestUse[] {
               ? staticString(objectValue(config, "method"), constants, source, node)
               : methodName)?.toUpperCase() ?? null;
             const semanticsAreUnmodeled = hasUnmodeledAxiosConfig(callConfig);
+            const allowExternalOriginSuppression = !semanticsAreUnmodeled && !uncertainAxiosInstances.has(receiver) &&
+              !uncertainAxiosNames.has(receiver) && !uncertainAxiosNames.has(expression.expression.getText(source)) &&
+              !axiosNamespaceNames.has(receiver);
             requests.push({ node, client: "axios", method, rawUrl, dynamicUrl: rawUrl === null,
+              fixedOrigin: rawUrl === null ? fixedOrigin(urlExpr, source, node) : null,
+              allowExternalOriginSuppression,
               baseUrl: configuredBase, allowConfirmed: !semanticsAreUnmodeled && !uncertainAxiosInstances.has(receiver) &&
                 !uncertainAxiosNames.has(receiver) && !uncertainAxiosNames.has(expression.expression.getText(source)) &&
                 !axiosNamespaceNames.has(receiver) });
@@ -337,10 +380,14 @@ function extractRequests(source: ts.SourceFile): RequestUse[] {
           const configIndex = ["post", "put", "patch"].includes(method) ? 2 : method === "request" ? 0 : 1;
           const config = node.arguments[configIndex];
           const callConfig = config === undefined ? null : objectProperties(config);
+          const urlExpr = method === "request" ? objectValue(node.arguments[0], "url") : node.arguments[0];
+          const semanticsAreUnmodeled = hasUnmodeledAxiosConfig(callConfig);
           requests.push({ node, client: "axios", method: method === "request" ?
             staticString(objectValue(node.arguments[0], "method"), constants, source, node)?.toUpperCase() ?? null : method.toUpperCase(),
           rawUrl: method === "request" ? staticString(objectValue(node.arguments[0], "url"), constants, source, node) : rawUrl,
           dynamicUrl: method === "request" ? staticString(objectValue(node.arguments[0], "url"), constants, source, node) === null : rawUrl === null,
+          fixedOrigin: semanticsAreUnmodeled ? null : fixedOrigin(urlExpr, source, node),
+          allowExternalOriginSuppression: false,
           baseUrl: callConfig?.known ? staticString(callConfig.values.get("baseURL"), constants, source, node) : null,
           allowConfirmed: false });
         }
@@ -369,16 +416,25 @@ function parseServerList(servers: unknown, contractUrl: string): ApiBase[] {
   return output;
 }
 
-function operationBases(contract: unknown, finding: OperationFinding, contractUrl: string): ApiBase[] {
+function operationServerList(contract: unknown, finding: OperationFinding): unknown {
   if (!contract || typeof contract !== "object") return [];
   const document = contract as { servers?: unknown; paths?: unknown };
   const paths = document.paths && typeof document.paths === "object" ? document.paths as Record<string, unknown> : {};
   const pathItem = paths[finding.path] && typeof paths[finding.path] === "object" ? paths[finding.path] as Record<string, unknown> : null;
   const operation = pathItem?.[finding.method.toLowerCase()] && typeof pathItem[finding.method.toLowerCase()] === "object"
     ? pathItem[finding.method.toLowerCase()] as Record<string, unknown> : null;
-  if (operation && Object.hasOwn(operation, "servers")) return parseServerList(operation.servers, contractUrl);
-  if (pathItem && Object.hasOwn(pathItem, "servers")) return parseServerList(pathItem.servers, contractUrl);
-  return parseServerList(document.servers, contractUrl);
+  if (operation && Object.hasOwn(operation, "servers")) return operation.servers;
+  if (pathItem && Object.hasOwn(pathItem, "servers")) return pathItem.servers;
+  return document.servers;
+}
+
+function operationBases(contract: unknown, finding: OperationFinding, contractUrl: string): ApiBase[] {
+  return parseServerList(operationServerList(contract, finding), contractUrl);
+}
+
+function operationBasesAreFullyResolved(contract: unknown, finding: OperationFinding, contractUrl: string): boolean {
+  const servers = operationServerList(contract, finding);
+  return Array.isArray(servers) && servers.length > 0 && parseServerList(servers, contractUrl).length === servers.length;
 }
 
 function matchingOperationBase(contract: unknown, finding: OperationFinding, url: URL | null, contractUrl: string): ApiBase | undefined {
@@ -615,11 +671,18 @@ export function analyzeContractImpact(input: {
         if (use.method && use.method.toUpperCase() !== finding.method.toUpperCase()) continue;
         const endpointRemoved = OPERATION_REMOVAL_CODES.has(finding.code) && operationRemovalProven(input.nextContract, finding);
         const previousBases = operationBases(input.previousContract, finding, input.contractUrl);
+        const nextBases = operationBases(input.nextContract, finding, input.contractUrl);
         const previousBase = matchingOperationBase(input.previousContract, finding, url, input.contractUrl);
         const nextBase = matchingOperationBase(input.nextContract, finding, url, input.contractUrl);
         const knownBase = endpointRemoved ? previousBase : previousBase ?? nextBase;
-        const hasAnyBase = endpointRemoved ? previousBases.length > 0 : previousBases.length > 0 ||
-          operationBases(input.nextContract, finding, input.contractUrl).length > 0;
+        const relevantBases = endpointRemoved ? previousBases : [...previousBases, ...nextBases];
+        const hasAnyBase = relevantBases.length > 0;
+        const relevantContractsAreResolved = (endpointRemoved
+          ? [input.previousContract]
+          : [input.previousContract, input.nextContract])
+          .every((contract) => operationBasesAreFullyResolved(contract, finding, input.contractUrl));
+        if (use.dynamicUrl && use.fixedOrigin && use.allowExternalOriginSuppression && hasAnyBase &&
+          relevantContractsAreResolved && relevantBases.every((base) => base.url.origin !== use.fixedOrigin)) continue;
         const explicitDifferent = url && !knownBase && hasAnyBase &&
           ((use.rawUrl && /^https?:\/\//i.test(use.rawUrl)) || (use.baseUrl && /^https?:\/\//i.test(use.baseUrl)));
         if (explicitDifferent) continue; // A different explicitly identified API is not a match.
