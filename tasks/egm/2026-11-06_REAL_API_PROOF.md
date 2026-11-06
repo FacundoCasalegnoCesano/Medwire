@@ -1,0 +1,9 @@
+# Existing API proof
+
+**Scope:** focused OpenAPI contract and local-only verification for the existing read-only `GET /api/monitors/{id}/checks` endpoint and its `monitor-check-panel.tsx` caller. No endpoint, auth flow, consumer, database, dependency, or deployment behavior changed. This is a scoped verification note, not a formal EGM five-stage review.
+
+**Baseline:** `docs/contracts/check-history.openapi.json` describes the actual session-protected GET, optional cursor, page shape, and observed 400/401/403/404 responses. The path ID schema intentionally makes no additional length claim.
+
+**Proof:** `npm run demo:verify:checks` passed locally after commit `d2a4da15ef2c10eac36e21c13e7b9c420db1ff06`. Pinned oasdiff reported `api-removed-without-deprecation GET /api/monitors/{id}/checks`. The impact analyzer found `CANDIDATE` evidence at `src/components/monitor-check-panel.tsx:82`, with a dynamic request path and the explanation that the URL cannot be linked reliably to the operation. It did not produce confirmed evidence. Coverage was `PARTIAL`, one file discovered and analyzed, zero skipped. Only this component was analyzed; the proof does not scan the repository tree. The removal exists only in the verifier's in-memory contract copy and is labeled `SIMULATED_CONTRACT_CHANGE` and `LOCAL_ONLY`.
+
+**Validation:** the local command ran successfully with the pinned oasdiff binary. ESLint for the verifier, full TypeScript typecheck, full lint, and `git diff --check` passed. The guide documents a separate signed-in browser request, app and worker startup, analysis prerequisites, and the public raw contract/repository URLs for a later monitor test. GitHub `master` was verified to contain the real consumer; its source SHA can differ from the local `Desarrollo` proof SHA. The raw contract file becomes available only after push. No GitHub publication, contract mutation, database write, or deployment occurred during this verification.

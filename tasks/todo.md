@@ -10,6 +10,8 @@ Every task must preserve account/workspace isolation, the public landing identit
 
 **2026-11-06 demo API verification:** The disabled-by-default local demo API was added at commit `592478a`. Its committed-source proof reports the pinned oasdiff breaking removal and one confirmed fetch usage with `PARTIAL` coverage. The API and proof are local-only; the verification record documents the default-branch and public-source requirements for a later real monitor run: [demo API verification](demo-api-verification.md).
 
+**2026-11-06 existing API proof:** A focused local contract and simulated removal proof now cover the existing read-only check-history GET and its real UI caller. The analyzer correctly reports a dynamic-path candidate with partial, one-file coverage; the endpoint remains unchanged. The CLI, exact local steps, and pending raw-contract publication requirements are recorded in [the proof note](egm/2026-11-06_REAL_API_PROOF.md) and [the user guide](../docs/real-api-test.md). This does not change the historical verification counts above.
+
 ## 3. Show breaking API changes, affected code, and a proposed pull request
 
 An engineer can compare real contract revisions, inspect evidence from a specific code revision, review a proposed repair and open a draft pull request in an authorized GitHub repository. The product distinguishes a detected contract change, demonstrated code impact and an unverified repair proposal.
