@@ -1,0 +1,13 @@
+{
+  "failure": "Landing typewriter did not reach the expected visible phrase; row diagnostic: {\"rowFound\":false,\"text\":\"\",\"codepoints\":[],\"innerText\":\"\",\"textContent\":\"\",\"caretPresent\":false}; wait: page.waitForFunction: Timeout 10000ms exceeded.",
+  "failureState": {
+    "url": "http://localhost:3000/",
+    "form": {
+      "fields": [],
+      "feedback": []
+    }
+  },
+  "apiResponses": [],
+  "consoleErrors": [],
+  "pageErrors": []
+}

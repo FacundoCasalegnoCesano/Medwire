@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+:root,
+html.dark,
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0c1017;
+  --foreground: #e8eef5;
+  --surface: #131b26;
+  --surface-foreground: #e8eef5;
+  --surface-secondary: #192433;
+  --surface-secondary-foreground: #e8eef5;
+  --surface-tertiary: #202c3b;
+  --surface-tertiary-foreground: #e8eef5;
+  --overlay: #192433;
+  --overlay-foreground: #e8eef5;
+  --muted: #a6b4c5;
+  --accent: #9ac9ff;
+  --accent-foreground: #0b1728;
+  --success: #90d5b5;
+  --success-foreground: #0c1017;
+  --warning: #f2c879;
+  --warning-foreground: #0c1017;
+  --danger: #ffb4ab;
+  --danger-foreground: #0c1017;
+  --default: #192433;
+  --default-foreground: #e8eef5;
+  --segment: #202c3b;
+  --segment-foreground: #e8eef5;
+  --border: #2b394b;
+  --separator: #253242;
+  --focus: #9ac9ff;
+  --link: #9ac9ff;
+  --field-background: #131b26;
+  --field-foreground: #e8eef5;
+  --field-placeholder: #a6b4c5;
+  --field-border: #5a6e86;
+  --glitch-slate-1: #2b394b;
+  --glitch-slate-2: #3a4d66;
+  --glitch-slate-3: #5a6e86;
+  --glitch-ice: #9ac9ff;
+  --field-border-width: 1px;
+  --field-radius: 4px;
+  --radius: 4px;
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  --surface-raised: #131b26;
+  --surface-elevated: #192433;
+  --code-bg: #0c1017;
+  --code-fg: #e8eef5;
+  --font-body: var(--font-sans);
+  --caret: #e8eef5;
+  font-family: var(--font-body);
+  background: var(--background);
+  color: var(--foreground);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { min-height: 100%; scroll-behavior: smooth; scroll-padding-top: 5rem; }
+body { min-height: 100vh; margin: 0; background: var(--background); color: var(--foreground); }
+body, button, input, textarea, select { font-family: var(--font-body); }
+button, input, textarea, select { font-size: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: .18em; }
+h1, h2, h3, p { margin-top: 0; }
+code, pre, kbd, samp { font-family: var(--font-mono); }
+input:not(.input), textarea:not(.textarea) { caret-color: var(--caret); }
+::selection { color: var(--accent-foreground); background: var(--accent); }
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+input:not(.input), textarea:not(.textarea), select {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--foreground);
+}
+input:not(.input)::placeholder, textarea:not(.textarea)::placeholder { color: var(--muted); opacity: 1; }
+input:not(.input)[aria-invalid="true"], textarea:not(.textarea)[aria-invalid="true"] { border-color: var(--danger); }
+label { color: var(--foreground); }
+
+/* Legacy navigation anchors; HeroUI controls keep their own BEM variants. */
+a.button:not([class*="button--"]) {
+  min-height: 44px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 0 17px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+.wordmark { display: inline-flex; align-items: center; gap: 10px; width: max-content; color: var(--foreground); font-size: 18px; font-weight: 650; letter-spacing: -.035em; text-decoration: none; }
+.brand-mark { display: inline-flex; align-items: flex-end; gap: 2px; width: 20px; height: 20px; padding: 3px; border: 1px solid color-mix(in srgb, var(--accent) 56%, var(--border)); border-radius: 5px; }
+.brand-mark i { display: block; width: 3px; border-radius: 2px; background: var(--accent); }
+.brand-mark i:nth-child(1) { height: 6px; opacity: .68; }
+.brand-mark i:nth-child(2) { height: 10px; opacity: .84; }
+.brand-mark i:nth-child(3) { height: 14px; }
+a.button:not([class*="button--"]):hover { filter: brightness(.94); }
+a.button:not([class*="button--"]):disabled { cursor: wait; opacity: .68; }
+a.button-small:not([class*="button--"]) { min-height: 38px; padding-inline: 13px; font-size: 13px; }
+a.button-outline:not([class*="button--"]) { background: transparent; color: var(--foreground); border-color: var(--border); }
+a.button-outline:not([class*="button--"]):hover { background: var(--surface-elevated); filter: none; }
+.quiet-link { color: var(--muted); text-decoration: none; transition: color .16s ease; }
+.quiet-link:hover { color: var(--accent); text-decoration: underline; }
+.eyebrow { margin: 0 0 12px; color: var(--muted); font: 600 11px/1.45 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; }
+.form-feedback { margin: 0; padding: 11px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-raised); color: var(--foreground); font-size: 13px; line-height: 1.55; }
+.form-feedback.error { border-color: var(--danger); color: var(--danger); }
+.form-feedback.success { border-color: var(--success); color: var(--success); }
+
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { border: 3px solid var(--background); border-radius: 99px; background: var(--muted); }
+::-webkit-scrollbar-thumb:hover { background: var(--foreground); }
+* { scrollbar-color: var(--muted) var(--background); scrollbar-width: thin; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

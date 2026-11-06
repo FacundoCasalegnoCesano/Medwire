@@ -1,0 +1,156 @@
+{
+  "createdAt": "2026-11-03T18:32:50.167Z",
+  "reviewDir": "C:\\Users\\OS\\Desktop\\proyectos\\Medwire\\.impeccable\\review\\graphite-ui",
+  "identityFile": "C:\\Users\\OS\\Desktop\\proyectos\\Medwire\\.cache\\2026-11-03T18-32-12-823Z-ui-identity.json",
+  "skipPublicRoutes": false,
+  "signedOutWorkspaceGuard": true,
+  "signupInputCheck": {
+    "formPresent": true,
+    "nameValid": true,
+    "emailValid": true,
+    "passwordLength": 36,
+    "passwordValid": true,
+    "formValid": true
+  },
+  "monitorStatusAfterCreate": "READY",
+  "monitorStatusAfterEdit": "READY",
+  "monitorStatusAfterWithdraw": "WITHDRAWN",
+  "monitorStatusAfterReactivate": "READY",
+  "monitorLifecycle": [
+    "created",
+    "edited",
+    "withdrawn",
+    "reactivated"
+  ],
+  "passwordRecoveryNeutral": true,
+  "signOutAndSignIn": true,
+  "reducedMotionActive": true,
+  "overflowRoutes": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  ],
+  "pageErrors": [],
+  "consoleErrorCount": 1,
+  "pageErrorCount": 0,
+  "screenshots": [
+    ".impeccable\\review\\graphite-ui\\landing-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\landing-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\landing-reduced-motion-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\landing-reduced-motion-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\auth-sign-in-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\auth-sign-in-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\auth-sign-up-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\auth-sign-up-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\auth-forgot-password-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\auth-forgot-password-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\auth-reset-missing-token-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\auth-reset-missing-token-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\workspace-dashboard-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-dashboard-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitors-empty-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitors-empty-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitor-form-invalid-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitor-form-invalid-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitors-populated-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitors-populated-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitor-edit-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitor-edit-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitors-reactivated-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-account-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-account-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitors-reduced-motion-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\workspace-monitors-reduced-motion-mobile390.png",
+    ".impeccable\\review\\graphite-ui\\auth-forgot-password-neutral-desktop1440.png",
+    ".impeccable\\review\\graphite-ui\\auth-forgot-password-neutral-mobile390.png"
+  ],
+  "apiResponses": [
+    {
+      "action": "signup",
+      "path": "/api/auth/sign-up/email",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "action": "invalid-monitor",
+      "path": "/api/monitors",
+      "method": "POST",
+      "status": 422,
+      "error": "Check the highlighted fields.",
+      "fields": {
+        "name": "Enter a monitor name.",
+        "contractUrl": "URL is invalid.",
+        "repositoryUrl": "URL is invalid."
+      },
+      "uiFeedback": {
+        "fields": [
+          {
+            "name": "name",
+            "invalid": true,
+            "describedText": "Enter a monitor name."
+          },
+          {
+            "name": "contractUrl",
+            "invalid": true,
+            "describedText": "Public HTTPS URL with an OpenAPI 3.0 or 3.1 document in JSON or YAML. URL is invalid."
+          },
+          {
+            "name": "repositoryUrl",
+            "invalid": true,
+            "describedText": "Public Git repository over HTTPS. Reading source does not authorize publishing a pull request. URL is invalid."
+          }
+        ],
+        "feedback": [
+          "Saving and checking both sources…"
+        ]
+      }
+    },
+    {
+      "action": "create-monitor",
+      "path": "/api/monitors",
+      "method": "POST",
+      "status": 201,
+      "monitorStatus": "READY"
+    },
+    {
+      "action": "edit-monitor",
+      "path": "/api/monitors/[id]",
+      "method": "PATCH",
+      "status": 200,
+      "monitorStatus": "READY"
+    },
+    {
+      "action": "withdraw-monitor",
+      "path": "/api/monitors/[id]",
+      "method": "PATCH",
+      "status": 200,
+      "monitorStatus": "WITHDRAWN"
+    },
+    {
+      "action": "reactivate-monitor",
+      "path": "/api/monitors/[id]",
+      "method": "PATCH",
+      "status": 200,
+      "monitorStatus": "READY"
+    },
+    {
+      "action": "request-password-reset",
+      "path": "/api/auth/request-password-reset",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "action": "sign-out",
+      "path": "/api/auth/sign-out",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "action": "sign-in",
+      "path": "/api/auth/sign-in/email",
+      "method": "POST",
+      "status": 200
+    }
+  ],
+  "failure": null,
+  "failureState": null
+}

@@ -1,0 +1,32 @@
+# Dependencies and build output
+node_modules/
+.cache/
+.next/
+out/
+coverage/
+dist/
+src/generated/prisma/
+*.tsbuildinfo
+
+# Local environment and databases
+.env
+.env.*
+!.env.example
+*.log
+*.pid
+*.seed
+
+# Tooling and editor state
+graphify-out/
+.turbo/
+.vercel/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+npm-debug.log*
+
+# Prisma local state
+.prisma/
+.tmp/
+.tools/

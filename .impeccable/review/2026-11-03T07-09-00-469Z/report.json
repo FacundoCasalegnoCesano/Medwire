@@ -1,0 +1,158 @@
+{
+  "createdAt": "2026-11-03T07:18:25.116Z",
+  "reviewDir": "C:\\Users\\OS\\Desktop\\proyectos\\Medwire\\.impeccable\\review\\2026-11-03T07-09-00-469Z",
+  "identityFile": "C:\\Users\\OS\\Desktop\\proyectos\\Medwire\\.cache\\2026-11-03T07-15-52-174Z-ui-identity.json",
+  "signedOutWorkspaceGuard": true,
+  "signupInputCheck": {
+    "formPresent": true,
+    "nameValid": true,
+    "emailValid": true,
+    "passwordLength": 36,
+    "passwordValid": true,
+    "formValid": true
+  },
+  "monitorStatusAfterCreate": "Sources ready",
+  "monitorLifecycle": [
+    "created",
+    "edited",
+    "withdrawn",
+    "reactivated"
+  ],
+  "passwordRecoveryNeutral": true,
+  "signOutAndSignIn": true,
+  "reducedMotionActive": true,
+  "overflowRoutes": [],
+  "consoleErrors": [
+    "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "In HTML, %s cannot be a child of <%s>.%s\nThis will cause a hydration error.%s <html> body  \n\n  ...\n    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:\"...\", ...}}>\n      <AppDevOverlayErrorBoundary globalError={[...]}>\n        <ReplaySsrOnlyErrors>\n        <DevRootHTTPAccessFallbackBoundary>\n          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>\n            <HTTPAccessFallbackErrorBoundary pathname=\"/sign-in\" notFound={<NotAllowedRootHTTPFallbackError>} ...>\n              <RedirectBoundary>\n                <RedirectErrorBoundar",
+    "<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. body <html>",
+    "You are mounting a new %s component when a previous one has not first unmounted. It is an error to render more than one %s component at a time and attributes and children of these components will likely fail in unpredictable ways. Please only render a single instance of <%s> and if you need to mount a new one, ensure any previous ones have unmounted first. html html html",
+    "You are mounting a new %s component when a previous one has not first unmounted. It is an error to render more than one %s component at a time and attributes and children of these components will likely fail in unpredictable ways. Please only render a single instance of <%s> and if you need to mount a new one, ensure any previous ones have unmounted first. body body body"
+  ],
+  "pageErrors": [],
+  "consoleErrorCount": 7,
+  "pageErrorCount": 0,
+  "screenshots": [
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\landing-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\landing-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\landing-reduced-motion-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\landing-reduced-motion-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-sign-in-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-sign-in-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-sign-up-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-sign-up-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-forgot-password-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-forgot-password-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-reset-missing-token-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-reset-missing-token-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-dashboard-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-dashboard-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitors-empty-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitors-empty-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitor-form-invalid-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitor-form-invalid-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitors-populated-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitors-populated-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitor-edit-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitor-edit-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitors-reactivated-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-account-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-account-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitors-reduced-motion-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\workspace-monitors-reduced-motion-mobile390.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-forgot-password-neutral-desktop1440.png",
+    ".impeccable\\review\\2026-11-03T07-09-00-469Z\\auth-forgot-password-neutral-mobile390.png"
+  ],
+  "apiResponses": [
+    {
+      "action": "signup",
+      "path": "/api/auth/sign-up/email",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "action": "invalid-monitor",
+      "path": "/api/monitors",
+      "method": "POST",
+      "status": 422,
+      "error": "Check the highlighted fields.",
+      "fields": {
+        "name": "Enter a monitor name.",
+        "contractUrl": "URL is invalid.",
+        "repositoryUrl": "URL is invalid."
+      },
+      "uiFeedback": {
+        "fields": [
+          {
+            "name": "name",
+            "invalid": true,
+            "describedText": "Enter a monitor name."
+          },
+          {
+            "name": "contractUrl",
+            "invalid": true,
+            "describedText": "Public HTTPS URL with an OpenAPI 3.0 or 3.1 document in JSON or YAML. URL is invalid."
+          },
+          {
+            "name": "repositoryUrl",
+            "invalid": true,
+            "describedText": "Public Git repository over HTTPS. Reading source does not authorize publishing a pull request. URL is invalid."
+          }
+        ],
+        "feedback": [
+          "Saving and checking both sources…"
+        ]
+      }
+    },
+    {
+      "action": "create-monitor",
+      "path": "/api/monitors",
+      "method": "POST",
+      "status": 201,
+      "monitorStatus": "READY"
+    },
+    {
+      "action": "edit-monitor",
+      "path": "/api/monitors/[id]",
+      "method": "PATCH",
+      "status": 200,
+      "monitorStatus": "READY"
+    },
+    {
+      "action": "withdraw-monitor",
+      "path": "/api/monitors/[id]",
+      "method": "PATCH",
+      "status": 200,
+      "monitorStatus": "WITHDRAWN"
+    },
+    {
+      "action": "reactivate-monitor",
+      "path": "/api/monitors/[id]",
+      "method": "PATCH",
+      "status": 200,
+      "monitorStatus": "READY"
+    },
+    {
+      "action": "request-password-reset",
+      "path": "/api/auth/request-password-reset",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "action": "sign-out",
+      "path": "/api/auth/sign-out",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "action": "sign-in",
+      "path": "/api/auth/sign-in/email",
+      "method": "POST",
+      "status": 200
+    }
+  ],
+  "failure": null,
+  "failureState": null
+}

@@ -1,0 +1,116 @@
+.shell {
+  --auth-space: clamp(20px, 4vw, 54px);
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-inline: max(var(--auth-space), calc((100vw - 1160px) / 2));
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.background { z-index: 0; }
+.shell > :not([aria-hidden="true"]) { position: relative; z-index: 1; }
+
+.header {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.content {
+  flex: 1;
+  display: grid;
+  align-items: center;
+  padding-block: clamp(36px, 7vh, 72px);
+}
+
+.grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(56px, 10vw, 138px);
+}
+
+.formRegion { width: 100%; }
+
+.card {
+  width: 100%;
+  padding: clamp(23px, 3vw, 34px);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.card h1 { margin: 0; font-size: 30px; font-weight: 600; line-height: 1.15; letter-spacing: -.035em; }
+
+.description {
+  margin: 9px 0 24px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.form { display: grid; gap: 16px; }
+.form :global(.textfield) { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.form :global(.label) { color: var(--foreground); font-size: 13px; font-weight: 550; }
+.form :global(.input) {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--foreground);
+  font: 16px/1.5 var(--font-sans);
+  box-shadow: none;
+}
+.form :global(.input::placeholder) { color: var(--muted); opacity: 1; }
+.form :global(.input:focus-visible),
+.form :global(.input[data-focus-visible="true"]) { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
+.form :global(.textfield[data-invalid="true"] .input) { border-color: var(--danger); }
+.form :global(.description),
+.form :global(.field-error) { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.form :global(.field-error) { color: var(--danger); }
+.submit { width: 100%; min-height: 46px; margin-top: 2px; }
+
+.links { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 19px; color: var(--muted); font-size: 13px; text-align: center; }
+.links a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.links a:hover { color: var(--foreground); }
+
+.context { max-width: 510px; }
+.context h2 { max-width: 14ch; margin: 0; font-size: 34px; font-weight: 570; line-height: 1.12; letter-spacing: -.035em; }
+.context > p { max-width: 47ch; margin: 13px 0 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.contextRules { margin: 26px 0 0; border-top: 1px solid var(--border); }
+.contextRules > div { display: grid; grid-template-columns: 115px minmax(0, 1fr); gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.contextRules dt { color: var(--muted); font: 11px/1.5 var(--font-mono); text-transform: uppercase; letter-spacing: .04em; }
+.contextRules dd { margin: 0; color: var(--foreground); font-size: 13px; }
+
+.loading { width: min(100%, 430px); padding: 26px; border: 1px solid var(--border); color: var(--muted); }
+.footer { min-height: 53px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; }
+
+@media (max-width: 800px) {
+  .grid { max-width: 540px; grid-template-columns: 1fr; gap: 32px; margin-inline: auto; }
+  .context { padding-inline: 2px; }
+  .context h2 { max-width: 20ch; font-size: 27px; }
+  .contextRules { margin-top: 16px; }
+}
+
+@media (max-width: 520px) {
+  .shell { --auth-space: 18px; }
+  .header { min-height: 62px; }
+  .content { padding-block: 27px; }
+  .grid { gap: 25px; }
+  .card { padding: 22px 18px; }
+  .card h1 { font-size: 27px; }
+  .context > p { margin-top: 9px; }
+  .contextRules > div { grid-template-columns: 96px minmax(0, 1fr); }
+  .footer { min-height: 58px; font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .links a { transition: none; }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "ImpactAnalysis" ALTER COLUMN "commitSha" DROP NOT NULL;

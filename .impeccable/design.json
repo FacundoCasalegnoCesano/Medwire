@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-03T18:05:56.602Z",
+  "title": "Design System: Mendwire",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Graphite canvas",
+        "canonical": "#0c1017"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Panel surface",
+        "canonical": "#131b26"
+      },
+      "surface-elevated": {
+        "role": "neutral",
+        "displayName": "Raised surface",
+        "canonical": "#192433"
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Primary text",
+        "canonical": "#e8eef5"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Secondary text",
+        "canonical": "#a6b4c5"
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Fine border",
+        "canonical": "#2b394b"
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Ice blue",
+        "canonical": "#9ac9ff"
+      },
+      "accent-foreground": {
+        "role": "neutral",
+        "displayName": "Ice blue text",
+        "canonical": "#0b1728"
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Success",
+        "canonical": "#90d5b5"
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Error",
+        "canonical": "#ffb4ab"
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Input boundary",
+        "canonical": "#5a6e86"
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Interface copy",
+        "purpose": "Readable controls and explanatory text in local IBM Plex Sans."
+      },
+      "technical": {
+        "displayName": "Source metadata",
+        "purpose": "Code, URLs, dates, and concise engineering labels in local IBM Plex Mono."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Keep essential content and state available without animation."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "600px"
+      },
+      {
+        "name": "workspace-tablet",
+        "value": "760px"
+      },
+      {
+        "name": "tablet",
+        "value": "900px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "HeroUI Button primary",
+      "description": "Ice-blue action with dark foreground from the shared HeroUI theme."
+    },
+    {
+      "name": "Source panel",
+      "kind": "custom",
+      "description": "Graphite editor-like surface with readable technical content and a thin border."
+    },
+    {
+      "name": "Mendwire wordmark",
+      "kind": "brand",
+      "description": "Existing three-bar mark paired with the Mendwire name on every surface."
+    }
+  ],
+  "narrative": {
+    "northStar": "The Graphite API Workbench",
+    "overview": "Mendwire presents API source management as a focused engineering tool. Graphite surfaces, ice-blue actions, local IBM Plex typography, and readable source metadata carry one visual system through the landing page, account access, and private workspace. Explanatory copy uses 14px, technical metadata stays at least 10px, mobile code stays at 12px in its own horizontal scroll area, and interactive targets have at least 44px of hit area.",
+    "keyCharacteristics": [
+      "One dark graphite palette across public, account, and private routes.",
+      "Ice-blue primary actions with clear contrast and fine borders.",
+      "IBM Plex Sans for interface copy and IBM Plex Mono for source data.",
+      "The existing three-bar Mendwire mark and accessible HeroUI v3 controls."
+    ],
+    "rules": [
+      {
+        "name": "The Source-Ready Rule",
+        "body": "Ready means saved public sources passed their checks; it never implies code analysis or a completed repair.",
+        "section": "components"
+      },
+      {
+        "name": "The Mono-for-Data Rule",
+        "body": "Use monospace for code, source URLs, dates, and concise technical labels; use Plex Sans for reading.",
+        "section": "typography"
+      },
+      {
+        "name": "The Shared-Workbench Rule",
+        "body": "Landing, account access, and workspace share graphite and ice-blue semantic tokens.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Use local IBM Plex font files and the semantic HeroUI theme tokens.",
+      "Keep the three-bar mark, keyboard focus, field associations, and responsive reading order.",
+      "Use readable 14px explanatory copy, 10px minimum concise technical labels, and 44px minimum interactive hit areas.",
+      "Label illustrative workflows and keep private source states literal.",
+      "Honor reduced-motion preferences and keep essential copy visible."
+    ],
+    "donts": [
+      "Do not imply that source validation performs code analysis, scheduled checks, or repair proposals.",
+      "Do not use color as the only signal for a status or error.",
+      "Do not load fonts remotely or use monospace for long body paragraphs.",
+      "Do not hide essential actions or status behind hover."
+    ]
+  }
+}

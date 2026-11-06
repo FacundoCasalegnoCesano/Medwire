@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String      @id
+  name          String
+  email         String      @unique
+  emailVerified Boolean     @default(false)
+  image         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  workspace     Workspace?
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model Workspace {
+  id                String                   @id @default(cuid())
+  ownerId           String                   @unique
+  owner             User                     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name              String
+  entitlementState  WorkspaceEntitlementState @default(BETA)
+  entitlementUntil  DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  monitors          Monitor[]
+  impactAnalyses    ImpactAnalysis[]
+}
+
+enum WorkspaceEntitlementState {
+  BETA
+  PAID
+  CANCELING
+  OVERDUE
+  EXPIRED
+}
+
+enum MonitorStatus {
+  DRAFT
+  READY
+  WITHDRAWN
+}
+
+model Monitor {
+  id                    String             @id @default(cuid())
+  workspaceId           String
+  workspace             Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name                  String             @db.VarChar(80)
+  contractUrl           String             @db.VarChar(2048)
+  repositoryUrl         String             @db.VarChar(2048)
+  contractVersion       Int                @default(1)
+  currentRevisionId     String?            @unique
+  currentRevision       ContractSnapshot?  @relation("CurrentRevision", fields: [currentRevisionId], references: [id], onDelete: SetNull)
+  nextCheckAt           DateTime?
+  lastSuccessfulCheckAt DateTime?
+  status                MonitorStatus      @default(DRAFT)
+  contractError         String?            @db.VarChar(240)
+  repositoryError       String?            @db.VarChar(240)
+  validationAttemptId String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  snapshots             ContractSnapshot[] @relation("MonitorSnapshots")
+  checkRuns             CheckRun[]
+
+  @@index([workspaceId, createdAt])
+  @@index([status, nextCheckAt])
+}
+
+model ContractSnapshot {
+  id             String         @id @default(cuid())
+  monitorId      String
+  monitor        Monitor        @relation("MonitorSnapshots", fields: [monitorId], references: [id], onDelete: Cascade)
+  contractVersion Int
+  revisionId     String         @db.Char(64)
+  contractUrl    String         @db.VarChar(2048)
+  specVersion    String         @db.VarChar(16)
+  document       Json
+  createdAt      DateTime       @default(now())
+  currentFor     Monitor[]      @relation("CurrentRevision")
+  previousRuns   CheckRun[]     @relation("PreviousSnapshot")
+  newRuns        CheckRun[]     @relation("NewSnapshot")
+
+  @@unique([monitorId, contractVersion, revisionId])
+  @@index([monitorId, contractVersion, createdAt])
+}
+
+enum CheckRunStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILURE
+}
+
+enum CheckRunTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+enum CheckRunOutcome {
+  BASELINE_SAVED
+  UNCHANGED
+  NO_CHANGES
+  CHANGES_FOUND
+}
+
+model CheckRun {
+  id                   String          @id @default(cuid())
+  monitorId            String
+  monitor              Monitor         @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  contractVersion      Int
+  contractUrl          String          @db.VarChar(2048)
+  trigger              CheckRunTrigger
+  idempotencyKey       String          @db.VarChar(160)
+  status               CheckRunStatus  @default(QUEUED)
+  outcome              CheckRunOutcome?
+  previousRevisionId   String?         @db.Char(64)
+  newRevisionId        String?         @db.Char(64)
+  previousSnapshotId   String?
+  previousSnapshot     ContractSnapshot? @relation("PreviousSnapshot", fields: [previousSnapshotId], references: [id], onDelete: SetNull)
+  newSnapshotId        String?
+  newSnapshot           ContractSnapshot? @relation("NewSnapshot", fields: [newSnapshotId], references: [id], onDelete: SetNull)
+  findings             Json            @default("[]")
+  error                String?         @db.VarChar(240)
+  attempts             Int             @default(0)
+  claimToken           String?         @db.Uuid
+  leaseExpiresAt       DateTime?
+  queuedAt             DateTime        @default(now())
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  impactAnalysis        ImpactAnalysis?
+
+  @@unique([monitorId, idempotencyKey])
+  @@index([monitorId, createdAt])
+  @@index([status, queuedAt])
+}
+
+enum ImpactAnalysisStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILURE
+}
+
+model ImpactAnalysis {
+  id                   String                @id @default(cuid())
+  workspaceId          String
+  workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  checkRunId           String                @unique
+  checkRun             CheckRun              @relation(fields: [checkRunId], references: [id], onDelete: Cascade)
+  contractVersion      Int
+  contractUrl          String                @db.VarChar(2048)
+  repositoryUrl        String                @db.VarChar(2048)
+  previousSnapshotId   String                @db.VarChar(64)
+  newSnapshotId        String                @db.VarChar(64)
+  previousRevisionId   String                @db.Char(64)
+  newRevisionId        String                @db.Char(64)
+  commitSha            String?               @db.VarChar(64)
+  analyzerVersion      String                @default("impact-ts-v2") @db.VarChar(32)
+  status               ImpactAnalysisStatus  @default(QUEUED)
+  evidence             Json                  @default("[]")
+  coverage             Json?
+  error                String?               @db.VarChar(240)
+  attempts             Int                   @default(0)
+  claimToken           String?               @db.Uuid
+  leaseExpiresAt       DateTime?
+  queuedAt             DateTime              @default(now())
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  requests             ImpactAnalysisRequest[]
+
+  @@index([workspaceId, queuedAt])
+  @@index([status, queuedAt])
+}
+
+model ImpactAnalysisRequest {
+  id               String         @id @default(cuid())
+  analysisId       String
+  analysis         ImpactAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  idempotencyKey   String         @db.Uuid
+  createdAt        DateTime       @default(now())
+
+  @@unique([analysisId, idempotencyKey])
+}
