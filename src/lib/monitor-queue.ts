@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fromPrisma, PgBoss } from "pg-boss";
 import type { Prisma } from "@/generated/prisma/client";
+import { MissingMonitorDatabaseUrlError, safeWorkerDiagnostic } from "@/lib/monitor-worker-diagnostics";
 
 export const MONITOR_CHECK_QUEUE = "monitor-check";
 export const MONITOR_DISPATCH_QUEUE = "monitor-dispatch";
@@ -22,7 +23,7 @@ const globalForMonitorQueue = globalThis as MonitorQueueGlobal;
 
 async function createMonitorCheckBoss() {
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("DATABASE_URL is not configured.");
+  if (!connectionString) throw new MissingMonitorDatabaseUrlError();
 
   const boss = new PgBoss({
     connectionString,
@@ -30,8 +31,8 @@ async function createMonitorCheckBoss() {
     application_name: "mendwire-monitoring",
     max: 4,
   });
-  boss.on("error", () => console.error("The monitoring queue reported an error."));
-  boss.on("warning", () => console.warn("The monitoring queue reported a warning."));
+  boss.on("error", (error) => console.error(safeWorkerDiagnostic("queue-event", error)));
+  boss.on("warning", (error) => console.warn(safeWorkerDiagnostic("queue-event", error)));
   await boss.start();
   await boss.createQueue(MONITOR_CHECK_QUEUE, {
     expireInSeconds: 600,
