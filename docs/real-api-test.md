@@ -22,7 +22,7 @@ La prueba usa el endpoint existente y de solo lectura `GET /api/monitors/{id}/ch
 
 ## Ejecutar la prueba reproducible del cambio
 
-El CLI no necesita que la app ni PostgreSQL estén en ejecución. Compara el contrato base del repositorio con una copia en memoria que elimina el `GET`, y corre oasdiff 1.35.0 más el analizador sobre el componente consumidor comprometido en Git:
+El CLI no necesita que la app ni PostgreSQL estén en ejecución. Compara el contrato base del repositorio con una copia en memoria que elimina el `GET`, y corre oasdiff 1.35.0 más el analizador sobre el componente consumidor guardado en un commit de Git:
 
 ```powershell
 # Solo si falta el binario local .tools/oasdiff-1.35.0:
@@ -34,13 +34,13 @@ Se espera un hallazgo de eliminación en oasdiff y evidencia `CANDIDATE` del ana
 
 ## Probar un monitor con el contrato publicado
 
-Después de que el contrato de esta rama esté en GitHub, creá un monitor usando estos valores:
+El contrato de la rama `Desarrollo` ya está publicado. El raw URL y el repositorio son:
 
 - **OpenAPI contract URL:** `https://raw.githubusercontent.com/FacundoCasalegnoCesano/Medwire/Desarrollo/docs/contracts/check-history.openapi.json`
 - **Git repository URL:** `https://github.com/FacundoCasalegnoCesano/Medwire`
 
-La URL raw todavía no sirve este archivo hasta que se haga push. La rama default `master` ya contiene el consumidor real; el resolver de impacto toma allí el SHA y la versión del componente. Ese SHA puede diferir del usado por el CLI local, que lee el componente desde el `HEAD` actual de `Desarrollo`.
+La URL raw está publicada y fue verificada como legible. Todavía no se ejecutó un check real de monitor con estos valores. La rama default `master` ya contiene el consumidor real; el resolver de impacto toma allí el SHA y la versión del componente. Ese SHA puede diferir del usado por el CLI local, que lee el componente desde el `HEAD` actual de `Desarrollo`.
 
-Cuando el monitor termine su primer check exitoso, habrá guardado el baseline. Volver a comprobar el mismo contenido debe producir `UNCHANGED`. Para probar un cambio real, reemplazá el contenido del mismo archivo en la rama `Desarrollo` con una revisión del contrato que retire el `GET`, y hacé push conservando exactamente la misma URL raw. El monitor entonces compara la revisión con el baseline anterior. Cambiar la URL del contrato crea otra fuente y reinicia la baseline. Esta actualización del archivo público es una acción posterior; `demo:verify:checks` solo simula la retirada localmente y no publica la revisión breaking.
+Cuando el monitor termine su primer check exitoso, habrá guardado el baseline. Volver a comprobar el mismo contenido debe producir `UNCHANGED`. Para probar un cambio real, reemplazá el contenido del mismo archivo en la rama `Desarrollo` con una revisión del contrato que retire el `GET`, y hacé push conservando exactamente la misma URL raw. El monitor entonces compara la revisión con el baseline anterior. Cambiar la URL del contrato crea otra fuente y reinicia la baseline. `demo:verify:checks` solo simula la retirada localmente; no publica la revisión breaking ni ejecuta este monitor.
 
 El botón **Analyze impact** solo aparece cuando un check alcanza `SUCCESS`, `CHANGES_FOUND` y al menos un finding `BREAKING`. Guardar baseline o recibir `UNCHANGED` no habilita el análisis. El límite local por defecto entre checks manuales es de 300 segundos; esperá el cooldown indicado por la interfaz antes de solicitar otro check. No hace falta ni corresponde saltear ese límite.
