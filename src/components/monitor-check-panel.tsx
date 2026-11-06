@@ -55,7 +55,7 @@ function isRunActive(run: CheckRunSummary) {
 function mergeRuns(current: CheckRunSummary[], incoming: CheckRunSummary[]) {
   const byId = new Map(current.map((run) => [run.id, run]));
   for (const run of incoming) byId.set(run.id, run);
-  return [...byId.values()].sort((a, b) => Date.parse(b.queuedAt) - Date.parse(a.queuedAt));
+  return [...byId.values()].sort((a, b) => Date.parse(b.queuedAt) - Date.parse(a.queuedAt) || b.id.localeCompare(a.id));
 }
 
 export function MonitorCheckPanel({ monitor }: { monitor: MonitorView }) {
@@ -68,6 +68,9 @@ export function MonitorCheckPanel({ monitor }: { monitor: MonitorView }) {
   );
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historyUnavailable, setHistoryUnavailable] = useState(false);
+  const [historyCursor, setHistoryCursor] = useState<string | null>(null);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -82,6 +85,8 @@ export function MonitorCheckPanel({ monitor }: { monitor: MonitorView }) {
         if (!disposed && Array.isArray(result.runs)) {
           const nextRuns = result.runs as CheckRunSummary[];
           setRuns((current) => mergeRuns(current, nextRuns));
+          setHistoryCursor(typeof result.nextCursor === "string" ? result.nextCursor : null);
+          setHistoryHasMore(Boolean(result.hasMore));
           setHasActiveRuns(nextRuns.some(isRunActive));
           setHistoryUnavailable(false);
         }
@@ -115,7 +120,7 @@ export function MonitorCheckPanel({ monitor }: { monitor: MonitorView }) {
         if (!response.ok) throw new Error(result.error ?? "Check status could not be refreshed.");
         if (disposed || !Array.isArray(result.runs)) return;
         const nextRuns = result.runs as CheckRunSummary[];
-        setRuns(nextRuns);
+        setRuns((current) => mergeRuns(current, nextRuns));
         const stillActive = nextRuns.some(isRunActive);
         setHasActiveRuns(stillActive);
         if (!stillActive) {
@@ -168,6 +173,25 @@ export function MonitorCheckPanel({ monitor }: { monitor: MonitorView }) {
     } finally {
       requestLock.current = false;
       setBusy(false);
+    }
+  }
+
+  async function loadOlderRuns() {
+    if (!historyCursor || loadingOlder) return;
+    setLoadingOlder(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/monitors/${monitor.id}/checks?cursor=${encodeURIComponent(historyCursor)}`, { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Older check history could not be loaded.");
+      if (!Array.isArray(result.runs)) throw new Error("Older check history could not be loaded.");
+      setRuns((current) => mergeRuns(current, result.runs as CheckRunSummary[]));
+      setHistoryCursor(typeof result.nextCursor === "string" ? result.nextCursor : null);
+      setHistoryHasMore(Boolean(result.hasMore));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Older check history could not be loaded.");
+    } finally {
+      setLoadingOlder(false);
     }
   }
 
@@ -252,6 +276,8 @@ export function MonitorCheckPanel({ monitor }: { monitor: MonitorView }) {
             ))}
           </ol>
         )}
+        {historyHasMore && <Button type="button" aria-busy={loadingOlder} isDisabled={loadingOlder} onPress={loadOlderRuns}>{loadingOlder ? "Loading older runs…" : "Load older runs"}</Button>}
+        {historyUnavailable && displayedRuns.length > 0 && <p role="status">Check history could not be refreshed.</p>}
       </section>
     </>
   );

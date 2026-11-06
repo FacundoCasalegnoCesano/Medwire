@@ -21,7 +21,7 @@ const FAILURE_MESSAGES = {
 } as const;
 
 export class MonitorCheckError extends Error {
-  constructor(readonly status: 403 | 404 | 409 | 429 | 503, message: string, readonly availableAt: Date | null = null) {
+  constructor(readonly status: 400 | 403 | 404 | 409 | 429 | 503, message: string, readonly availableAt: Date | null = null) {
     super(message);
   }
 }
@@ -136,17 +136,44 @@ export async function enqueueManualCheck(monitorId: string, idempotencyKey: stri
   }
 }
 
-export async function listCheckRuns(monitorId: string): Promise<CheckRunSummary[]> {
+const CHECK_HISTORY_PAGE_SIZE = 50;
+
+export function encodeCheckRunCursor(monitorId: string, run: { id: string; queuedAt: Date }) {
+  return Buffer.from(JSON.stringify({ monitorId, queuedAt: run.queuedAt.toISOString(), id: run.id })).toString("base64url");
+}
+
+export function decodeCheckRunCursor(cursor: string, monitorId: string): { id: string; queuedAt: Date } | null {
+  if (cursor.length > 512 || !/^[A-Za-z0-9_-]+$/.test(cursor)) return null;
+  try {
+    const value = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as { monitorId?: unknown; queuedAt?: unknown; id?: unknown };
+    if (value.monitorId !== monitorId || typeof value.id !== "string" || value.id.length < 1 || value.id.length > 128 ||
+      typeof value.queuedAt !== "string" || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value.queuedAt)) return null;
+    const queuedAt = new Date(value.queuedAt);
+    return Number.isNaN(queuedAt.getTime()) || queuedAt.toISOString() !== value.queuedAt ? null : { id: value.id, queuedAt };
+  } catch {
+    return null;
+  }
+}
+
+export async function listCheckRuns(monitorId: string, cursor?: string): Promise<{ runs: CheckRunSummary[]; nextCursor: string | null; hasMore: boolean }> {
   const monitor = await loadOwnedMonitor(monitorId);
   await resolveWorkspaceEntitlement({ workspaceId: monitor.workspace.id, actorUserId: monitor.workspace.ownerId });
+  const after = cursor === undefined ? null : decodeCheckRunCursor(cursor, monitorId);
+  if (cursor !== undefined && !after) throw new MonitorCheckError(400, "The check history cursor is invalid.");
   const runs = await db.checkRun.findMany({
-    where: { monitorId }, orderBy: { queuedAt: "desc" }, take: 50,
+    where: { monitorId, ...(after ? { OR: [
+      { queuedAt: { lt: after.queuedAt } },
+      { queuedAt: after.queuedAt, id: { lt: after.id } },
+    ] } : {}) },
+    orderBy: [{ queuedAt: "desc" }, { id: "desc" }], take: CHECK_HISTORY_PAGE_SIZE + 1,
     include: { impactAnalysis: true },
   });
-  return runs.map((run) => summarizeCheckRun({
+  const hasMore = runs.length > CHECK_HISTORY_PAGE_SIZE;
+  const pageRuns = runs.slice(0, CHECK_HISTORY_PAGE_SIZE);
+  return { runs: pageRuns.map((run) => summarizeCheckRun({
     ...run,
     impactAnalysis: run.impactAnalysis ? summarizeImpactAnalysis(run.impactAnalysis) : null,
-  }));
+  })), nextCursor: hasMore ? encodeCheckRunCursor(monitorId, pageRuns.at(-1)!) : null, hasMore };
 }
 
 async function claimRun(runId: string, leaseMs: number) {

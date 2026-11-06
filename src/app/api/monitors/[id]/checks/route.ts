@@ -22,11 +22,13 @@ function checkErrorResponse(error: unknown) {
   return monitorErrorResponse(error);
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   if (!(await getSession())) return unauthenticatedResponse("view check history for");
   try {
     const { id } = await context.params;
-    return NextResponse.json({ runs: await listCheckRuns(id) });
+    const query = new URL(request.url).searchParams;
+    const cursor = query.has("cursor") ? query.get("cursor") ?? "" : undefined;
+    return NextResponse.json(await listCheckRuns(id, cursor));
   } catch (error) {
     return checkErrorResponse(error);
   }

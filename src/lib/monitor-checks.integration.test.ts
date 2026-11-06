@@ -70,6 +70,7 @@ describe("monitor contract checks with PostgreSQL and oasdiff", () => {
   let postChecks: typeof import("@/app/api/monitors/[id]/checks/route").POST;
   let getChecks: typeof import("@/app/api/monitors/[id]/checks/route").GET;
   let createMonitor: typeof import("@/lib/monitors").createMonitor;
+  let getMonitor: typeof import("@/lib/monitors").getMonitor;
   let MonitorCapacityError: typeof import("@/lib/monitors").MonitorCapacityError;
   let compareOpenApiDocuments: typeof import("@/lib/openapi-diff").compareOpenApiDocuments;
   const contracts = new Map<string, { body: string; contentType: string; statusCode: number }>();
@@ -87,7 +88,7 @@ describe("monitor contract checks with PostgreSQL and oasdiff", () => {
     ({ createMonitorContractFetcher } = await import("@/lib/monitor-sources"));
     ({ compareOpenApiDocuments } = await import("@/lib/openapi-diff"));
     ({ POST: postChecks, GET: getChecks } = await import("@/app/api/monitors/[id]/checks/route"));
-    ({ createMonitor, MonitorCapacityError } = await import("@/lib/monitors"));
+    ({ createMonitor, getMonitor, MonitorCapacityError } = await import("@/lib/monitors"));
     await db.$connect();
     fetcher = createMonitorContractFetcher({
       resolve: async () => ["93.184.216.34"],
@@ -533,5 +534,51 @@ describe("monitor contract checks with PostgreSQL and oasdiff", () => {
     }), { params: Promise.resolve({ id: monitor.id }) });
     expect(deniedRead.status).toBe(404);
     expect(await db.checkRun.count({ where: { monitorId: monitor.id } })).toBe(1);
+  });
+
+  it("paginates check history with a stable timestamp and id cursor", async () => {
+    const monitor = await createReadyMonitor(0, "Paged check history");
+    const otherMonitor = await createReadyMonitor(0, "Other check history");
+    const tiedAt = new Date("2026-10-01T12:00:00.000Z");
+    const ids = Array.from({ length: 53 }, (_, index) => `${monitor.id}-${String(index).padStart(3, "0")}`);
+    await db.checkRun.createMany({ data: ids.map((id) => ({
+      id, monitorId: monitor.id, contractVersion: 1, contractUrl, trigger: "MANUAL" as const,
+      idempotencyKey: id, status: "SUCCESS" as const, outcome: "UNCHANGED" as const, queuedAt: tiedAt,
+    })) });
+
+    const getPage = (targetId: string, cursor?: string) => getChecks(new Request(
+      `${appUrl}/api/monitors/${targetId}/checks${cursor !== undefined ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+      { headers: { origin: appUrl } },
+    ), { params: Promise.resolve({ id: targetId }) });
+    const first = await getPage(monitor.id);
+    expect(first.status).toBe(200);
+    const firstPage = await first.json() as { runs: { id: string }[]; hasMore: boolean; nextCursor: string | null };
+    expect(firstPage.runs.map(({ id }) => id)).toEqual(ids.slice().sort().reverse().slice(0, 50));
+    expect(firstPage.hasMore).toBe(true);
+    expect(firstPage.nextCursor).toBeTruthy();
+    expect((await getMonitor(monitor.id)).lastRun?.id).toBe(firstPage.runs[0].id);
+
+    await db.checkRun.create({ data: {
+      id: `${monitor.id}-new-arrival`, monitorId: monitor.id, contractVersion: 1, contractUrl,
+      trigger: "MANUAL", idempotencyKey: `${monitor.id}-new-arrival`, status: "SUCCESS", outcome: "UNCHANGED",
+      queuedAt: new Date("2026-10-02T12:00:00.000Z"),
+    } });
+    const second = await getPage(monitor.id, firstPage.nextCursor!);
+    expect(second.status).toBe(200);
+    const secondPage = await second.json() as { runs: { id: string }[]; hasMore: boolean; nextCursor: string | null };
+    expect(secondPage.runs.map(({ id }) => id)).toEqual(ids.slice().sort().reverse().slice(50));
+    expect(secondPage.hasMore).toBe(false);
+    expect(secondPage.nextCursor).toBeNull();
+    expect(new Set([...firstPage.runs, ...secondPage.runs].map(({ id }) => id)).size).toBe(53);
+
+    expect((await getPage(monitor.id, "")).status).toBe(400);
+    expect((await getPage(monitor.id, "%%%bad-cursor")).status).toBe(400);
+    expect((await getPage(otherMonitor.id, firstPage.nextCursor!)).status).toBe(400);
+
+    const { cookie: foreignCookie } = await createAccount(1);
+    const foreignMonitor = await createReadyMonitor(1, "Foreign paged history");
+    requestContext.cookie = foreignCookie;
+    expect((await getPage(foreignMonitor.id, firstPage.nextCursor!)).status).toBe(400);
+    expect((await getPage(monitor.id, firstPage.nextCursor!)).status).toBe(404);
   });
 });
