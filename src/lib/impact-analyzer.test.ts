@@ -253,6 +253,59 @@ describe("contract consumer analysis", () => {
     }
   });
 
+  it("marks the current file incomplete when time expires inside finding comparisons", () => {
+    let clockCalls = 0;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => (++clockCalls >= 6 ? 2_000 : 0));
+    try {
+      const findings = Array.from({ length: 100 }, () => ({
+        ...removedOperation,
+        path: "/users",
+      }));
+      const result = analyze('fetch("https://api.example.test/v1/users");', {
+        findings,
+        coverage: { ...coverage, reasons: Array.from({ length: 12 }, (_, index) => `Existing reason ${index + 1}.`) },
+      });
+      expect(result.coverage).toMatchObject({ source: "PARTIAL", filesAnalyzed: 0, filesSkipped: 1 });
+      expect(result.coverage.reasons.join(" ")).toMatch(/time limit/i);
+      expect(result.evidence).toEqual([]);
+      expect(result.coverage.reasons).toHaveLength(12);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it("bounds retained evidence and reports truncated coverage", () => {
+    const findings = Array.from({ length: 100 }, () => ({ ...removedOperation }));
+    const result = analyze('fetch("https://api.example.test/v1/users");', {
+      findings,
+      coverage: { ...coverage, reasons: Array.from({ length: 12 }, (_, index) => `Existing reason ${index + 1}.`) },
+    });
+    expect(result.evidence).toHaveLength(80);
+    expect(result.coverage).toMatchObject({ source: "PARTIAL", filesAnalyzed: 1, filesSkipped: 0 });
+    expect(result.coverage.reasons.join(" ")).toMatch(/evidence result limit reached/i);
+    expect(result.coverage.reasons.join(" ")).toMatch(/other HTTP clients are unsupported/i);
+    expect(result.coverage.reasons).toHaveLength(12);
+  });
+
+  it("keeps completed file evidence and counts the timed-out and remaining files as skipped", () => {
+    let clockCalls = 0;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => (++clockCalls >= 9 ? 2_000 : 0));
+    try {
+      const result = analyze('fetch("https://api.example.test/v1/users");', {
+        files: [
+          { path: "src/complete.ts", content: 'fetch("https://api.example.test/v1/users");' },
+          { path: "src/timed-out.ts", content: 'fetch("https://api.example.test/v1/users");' },
+          { path: "src/not-started.ts", content: 'fetch("https://api.example.test/v1/users");' },
+        ],
+      });
+      expect(result.evidence.map((item) => item.filePath)).toEqual(["src/complete.ts"]);
+      expect(result.coverage).toMatchObject({ source: "PARTIAL", filesDiscovered: 3, filesAnalyzed: 1, filesSkipped: 2 });
+      expect(result.coverage.reasons.join(" ")).toMatch(/time limit/i);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it("uses Axios's third argument as post config and refuses a dynamic base override", () => {
     const result = analyze([
       'import axios from "axios";',
