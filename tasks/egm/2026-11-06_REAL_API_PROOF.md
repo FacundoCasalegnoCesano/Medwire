@@ -2,7 +2,7 @@
 
 **Scope:** focused OpenAPI contract and local-only verification for the existing read-only `GET /api/monitors/{id}/checks` endpoint and its `monitor-check-panel.tsx` caller. No endpoint, auth flow, consumer, database, dependency, or deployment behavior changed. This is a scoped verification note, not a formal EGM five-stage review.
 
-**Baseline:** `docs/contracts/check-history.openapi.json` describes the actual session-protected GET, optional cursor, page shape, and observed 400/401/403/404 responses. The path ID schema intentionally makes no additional length claim.
+**Baseline:** `docs/contracts/check-history.openapi.json` describes the actual session-protected GET, optional cursor, page shape, and documented 400/401/404 responses. The path ID schema intentionally makes no additional length claim.
 
 **Proof:** `npm run demo:verify:checks` passed locally after commit `d2a4da15ef2c10eac36e21c13e7b9c420db1ff06`. Pinned oasdiff reported `api-removed-without-deprecation GET /api/monitors/{id}/checks`. The impact analyzer found `CANDIDATE` evidence at `src/components/monitor-check-panel.tsx:82`, with a dynamic request path and the explanation that the URL cannot be linked reliably to the operation. It did not produce confirmed evidence. Coverage was `PARTIAL`, one file discovered and analyzed, zero skipped. Only this component was analyzed; the proof does not scan the repository tree. The removal exists only in the verifier's in-memory contract copy and is labeled `SIMULATED_CONTRACT_CHANGE` and `LOCAL_ONLY`.
 
