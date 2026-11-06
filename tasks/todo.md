@@ -6,6 +6,8 @@ These tasks extend roadmap outcomes 3–6 supplied by the user. They are propose
 
 Every task must preserve account/workspace isolation, the public landing identity and truthful product states. Dependencies refer to task identifiers below, not the order in which the commercial roadmap is displayed.
 
+**2026-11-06 follow-up verification:** The four approved improvement items are implemented and verified in [the improvement report](egm/2026-11-06_IMPROVEMENTS.md) and [the implementation record](egm/2026-11-06_IMPLEMENTATION.md). Unit tests passed 137/137; disposable-database integration passed 27/27; focused history and monitor integration passed 13/13 after the empty-cursor fix; and the focused deterministic-order integration passed 1/1. Lint, typecheck, final production build, and desktop/mobile browser checks passed. Browser evidence and local measurement limits are recorded in the implementation record. Preview and disposable database ports were verified stopped. No production migration or deployment occurred. These records do not change the status of unrelated roadmap tasks.
+
 ## 3. Show breaking API changes, affected code, and a proposed pull request
 
 An engineer can compare real contract revisions, inspect evidence from a specific code revision, review a proposed repair and open a draft pull request in an authorized GitHub repository. The product distinguishes a detected contract change, demonstrated code impact and an unverified repair proposal.
